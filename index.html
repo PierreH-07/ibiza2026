@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Ponton · Ibiza 2026 · 10km</title>
+<style>
+
+:root {
+  --ffn-blue:#003087; --ffn-red:#C8102E; --ffn-light:#c6ddf0;
+  --bg:#f0f5fb; --surf:#ffffff; --surf2:#eef3fa;
+  --border:#d0dcef; --txt:#1a2a4a; --txt-dim:#6b7f9e; --txt-bright:#0a1628;
+  --panel-w:min(340px,92vw);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);}
+body{font-family:'Helvetica Neue',Arial,system-ui,-apple-system,sans-serif;font-size:14px;-webkit-font-smoothing:antialiased;}
+
+/* HEADER */
+.hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 16px 8px;gap:10px;
+  background:var(--ffn-blue);
+  border-bottom:3px solid var(--ffn-red);
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  padding-top:max(10px,env(safe-area-inset-top));
+}
+.hdr-title{font-size:clamp(13px,3.5vw,18px);font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#fff;line-height:1;}
+.hdr-sub{font-size:10px;color:rgba(255,255,255,.6);letter-spacing:.06em;text-transform:uppercase;margin-top:2px;}
+.tabs{display:flex;gap:4px;flex-shrink:0;}
+.tab{
+  font-size:12px;font-weight:700;text-transform:uppercase;
+  padding:6px 14px;border-radius:3px;
+  border:1.5px solid rgba(255,255,255,.3);
+  background:transparent;color:rgba(255,255,255,.6);
+  cursor:pointer;transition:all .18s;white-space:nowrap;
+}
+.tab.on{background:var(--ffn-red);border-color:var(--ffn-red);color:#fff;}
+
+/* FILTER BAR */
+.filters{
+  display:flex;align-items:center;gap:6px;flex-wrap:nowrap;
+  padding:6px 14px;
+  background:#e8f0f8;border-bottom:1px solid #c5d4e8;
+  position:fixed;z-index:199;left:0;right:0;
+  overflow-x:auto;-webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+}
+.filters::-webkit-scrollbar{display:none;}
+.flabel{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--txt-dim);font-weight:700;white-space:nowrap;}
+.fsel{
+  background:#fff;border:1px solid #c5d4e8;
+  color:var(--txt);padding:4px 8px;border-radius:3px;
+  font-size:11px;cursor:pointer;font-family:inherit;
+}
+.chip{
+  font-size:10px;padding:3px 9px;border-radius:20px;
+  border:1.5px solid #c5d4e8;background:#fff;
+  color:var(--txt-dim);cursor:pointer;transition:all .15s;
+  white-space:nowrap;font-family:inherit;
+}
+.chip.on{background:var(--ffn-blue);border-color:var(--ffn-blue);color:#fff;}
+
+/* LAYOUT */
+.main-layout{
+  display:flex;height:100%;
+}
+.left-col{
+  flex:1;overflow-y:auto;overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  padding:12px 10px calc(env(safe-area-inset-bottom)+16px);
+  min-width:0;
+}
+.ponton-info{font-size:11px;color:var(--txt-dim);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em;}
+
+/* PANEL */
+.panel-overlay{position:fixed;inset:0;background:rgba(0,30,80,.45);z-index:300;opacity:0;pointer-events:none;transition:opacity .25s;}
+.panel-overlay.show{opacity:1;pointer-events:all;}
+.panel{
+  position:fixed;right:0;top:0;bottom:0;
+  width:var(--panel-w);
+  background:#fff;border-left:2px solid var(--ffn-blue);
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
+  z-index:301;
+  transform:translateX(100%);
+  transition:transform .28s cubic-bezier(.4,0,.2,1);
+  padding-bottom:calc(env(safe-area-inset-bottom)+16px);
+}
+.panel.show{transform:translateX(0);}
+@media(min-width:800px){
+  .panel-overlay{display:none!important;}
+  .panel{
+    position:static;transform:none!important;
+    width:0;min-width:0;flex-shrink:0;
+    border-left:none;
+    overflow:hidden;
+    transition:width .28s cubic-bezier(.4,0,.2,1);
+  }
+  .panel.show{
+    width:var(--panel-w);min-width:var(--panel-w);
+    border-left:2px solid var(--ffn-blue);
+  }
+  .main-layout{overflow:hidden;}
+}
+
+.panel-close{
+  position:sticky;top:0;z-index:10;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 14px;
+  background:var(--ffn-blue);
+}
+.close-label{font-size:11px;color:rgba(255,255,255,.8);font-weight:700;text-transform:uppercase;letter-spacing:.05em;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.close-btn{
+  background:var(--ffn-red);border:none;
+  color:#fff;padding:5px 12px;border-radius:3px;
+  font-size:12px;cursor:pointer;font-family:inherit;font-weight:700;flex-shrink:0;
+}
+
+/* FICHE */
+.fiche{padding:14px 14px 24px;animation:fadeIn .2s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.fiche-hdr{display:flex;gap:10px;align-items:flex-start;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #dde8f5;}
+.bib-badge{width:42px;height:42px;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;background:var(--ffn-blue);}
+.fiche-name{font-size:14px;font-weight:800;text-transform:uppercase;letter-spacing:.02em;color:var(--txt-bright);line-height:1.1;}
+.fiche-meta{font-size:11px;color:var(--txt-dim);margin-top:3px;}
+.sect-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ffn-blue);padding-bottom:5px;margin-bottom:7px;border-bottom:2px solid var(--ffn-blue);}
+.sect{margin-bottom:14px;}
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.tcell{background:var(--surf2);border-radius:3px;padding:6px 8px;}
+.tlabel{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--txt-dim);font-weight:600;}
+.tval{font-size:16px;font-weight:800;color:var(--txt-bright);margin-top:1px;}
+.tval.nd{font-size:12px;color:#bbc8d8;font-weight:400;}
+.exp-wrap{background:var(--surf2);border-radius:3px;padding:8px 10px;}
+.exp-row{display:flex;justify-content:space-between;margin-bottom:5px;font-size:11px;color:var(--txt);}
+.exp-bar-bg{height:7px;background:#d0dce8;border-radius:3px;overflow:hidden;}
+.exp-bar{height:100%;border-radius:3px;transition:width .4s ease;}
+.rlist{display:flex;flex-direction:column;gap:4px;}
+.ritem{display:flex;align-items:center;gap:8px;background:var(--surf2);border-radius:3px;padding:5px 8px;font-size:11px;}
+.rrank{font-size:16px;font-weight:800;width:24px;text-align:center;flex-shrink:0;}
+.top3{color:#b8860b;}.top10{color:var(--ffn-blue);}.other{color:#8899b0;}
+.rcourse{color:var(--txt);flex:1;}
+.empty-r{font-size:11px;color:#bbc8d8;font-style:italic;}
+.p-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:80%;gap:10px;color:var(--txt-dim);font-size:12px;text-align:center;padding:24px;}
+.p-empty-icon{font-size:40px;opacity:.25;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:#c5d4e8;border-radius:2px;}
+
+
+.resp-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  margin-top:6px;padding:4px 10px;
+  background:#eef3fa;border:1.5px solid #003087;border-radius:20px;
+  font-size:11px;
+}
+.resp-icon{font-size:15px;font-weight:900;color:#003087;line-height:1;}
+.resp-label{color:#003087;font-weight:600;letter-spacing:.02em;}
+</style>
+</head>
+<body>
+
+<div class="hdr" id="hdr">
+  <div>
+    <div class="hdr-title">🏊 Ponton · 10km Ibiza 2026</div>
+    <div class="hdr-sub">World Cup Stop 2 · 24 avril 2026 · FFN Service Performance</div>
+  </div>
+  <div class="tabs">
+    <button class="tab on" id="tf" onclick="switchGender('f')">♀ Femmes</button>
+    <button class="tab" id="th" onclick="switchGender('h')">♂ Hommes</button>
+  </div>
+</div>
+
+<div class="filters" id="fbar">
+  <span class="flabel">Tri :</span>
+  <select class="fsel" id="sort" onchange="renderHist()">
+    <option value="bib">BIB</option>
+    <option value="v15">Vitesse 1500 ↓</option>
+    <option value="v400">Vitesse 400 ↓</option>
+    <option value="exp">Expérience ↓</option>
+    <option value="noc">Nation</option>
+  </select>
+  <span class="flabel">Nation :</span>
+  <div id="chips" style="display:flex;gap:4px;flex-wrap:nowrap;"></div>
+</div>
+
+<div class="main-layout" id="main-layout">
+
+  <div class="left-col" id="left-col">
+    <div class="ponton-info" id="pinfo"></div>
+    <div id="hist-container" style="width:100%;min-width:600px;"></div>
+  </div>
+
+  <div class="panel-overlay" id="overlay" onclick="closePanel()"></div>
+  <div class="panel" id="panel">
+    <div class="panel-close">
+      <span class="close-label" id="panel-title">Fiche nageur</span>
+      <button class="close-btn" onclick="closePanel()">✕</button>
+    </div>
+    <div class="p-empty" id="pempty">
+      <div class="p-empty-icon">📊</div>
+      <div>Cliquez sur une barre<br>pour voir la fiche</div>
+    </div>
+    <div id="fiche"></div>
+  </div>
+
+</div>
+
+<script>
+
+'use strict';
+const NOC_FLAGS = {"ARG":"🇦🇷","AUS":"🇦🇺","AUT":"🇦🇹","BEL":"🇧🇪","BOL":"🇧🇴","BRA":"🇧🇷","CZE":"🇨🇿","ECU":"🇪🇨","ESP":"🇪🇸","FIN":"🇫🇮","FRA":"🇫🇷","GER":"🇩🇪","GBR":"🇬🇧","HUN":"🇭🇺","ITA":"🇮🇹","JPN":"🇯🇵","MAR":"🇲🇦","MON":"🇲🇨","PER":"🇵🇪","POL":"🇵🇱","POR":"🇵🇹","RSA":"🇿🇦","SUD":"🇸🇩","SUI":"🇨🇭","SVK":"🇸🇰","TUR":"🇹🇷","USA":"🇺🇸","CHN":"🇨🇳","GRE":"🇬🇷","NAB":"—"};
+const DATA_F = [{"bib":1,"nom":"ROSA Mafalda","noc":"POR","annee":null,"experience":28,"t400":"4:25.900","t800":"8:58.930","t1500":"17:02.300","v1500":1.4673,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":24},{"course":"CdM Golfo Aranci 2025","rang":25},{"course":"CdM Funchal 2023","rang":18},{"course":"CdM Setubal 2023","rang":20},{"course":"CdM Golfo Aranci 2023","rang":27},{"course":"CdM Soma Bay 2023","rang":6},{"course":"CdM Doha 2021","rang":27},{"course":"CdM Abu Dhabi 2021","rang":23},{"course":"CdM Setubal 2024","rang":12},{"course":"CdM Neom 2024","rang":9},{"course":"CdM Golfo Aranci 2024","rang":15}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":23},{"course":"ChM Singapour 2025 10K","rang":7},{"course":"ChE Belgrade 2024","rang":12},{"course":"ChM Doha 2024","rang":19},{"course":"ChM Budapest 2022","rang":12},{"course":"ChM Fukuoka 2023","rang":17},{"course":"ChE Stari Grad 2025","rang":16}],"t100":null,"t200":null,"v400":1.5043,"v800":1.4844,"respiration":null},{"bib":2,"nom":"MAESTRO LORENZO Alba","noc":"ESP","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[{"course":"CdM Ibiza 2025","rang":46}],"resultats_chm":[],"t100":null,"t200":null,"v400":null,"v800":null,"respiration":null},{"bib":3,"nom":"HANSEN Brinkleigh","noc":"USA","annee":2009,"experience":7,"t400":"4:11.730","t800":"8:35.780","t1500":"16:31.310","v1500":1.5131,"resultats_cdm":[{"course":"CdM Setubal 2025","rang":20}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":22},{"course":"ChM Singapour 2025 10K","rang":24}],"t100":null,"t200":null,"v400":1.589,"v800":1.551,"respiration":null},{"bib":4,"nom":"MARTIN Tayla","noc":"AUS","annee":1999,"experience":0,"t400":"4:21.020","t800":"8:53.440","t1500":"16:41.500","v1500":1.4978,"resultats_cdm":[{"course":"CdM Golfo Aranci 2023","rang":37},{"course":"CdM Hong Kong 2024","rang":13}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":20}],"t100":null,"t200":null,"v400":1.5324,"v800":1.4997,"respiration":null},{"bib":5,"nom":"KESELY Ajna","noc":"HUN","annee":null,"experience":0,"t400":"4:01.310","t800":"8:22.010","t1500":"15:54.480","v1500":1.5715,"resultats_cdm":[],"resultats_chm":[],"t100":null,"t200":null,"v400":1.6576,"v800":1.5936,"respiration":null},{"bib":6,"nom":"INAL Su","noc":"TUR","annee":null,"experience":2,"t400":"4:22.220","t800":"9:10.280","t1500":"17:48.490","v1500":1.4039,"resultats_cdm":[],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":27},{"course":"ChM Singapour 2025 10K","rang":42}],"t100":null,"t200":null,"v400":1.5254,"v800":1.4538,"respiration":null},{"bib":7,"nom":"DE VALDES Maria","noc":"ESP","annee":null,"experience":40,"t400":"4:10.470","t800":"8:33.900","t1500":"16:14.770","v1500":1.5388,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":4},{"course":"CdM Golfo Aranci 2025","rang":10},{"course":"CdM Funchal 2023","rang":21},{"course":"CdM Golfo Aranci 2023","rang":30},{"course":"CdM Doha 2021","rang":11},{"course":"CdM Neom 2024","rang":20}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":4},{"course":"ChM Singapour 2025 10K","rang":4},{"course":"ChE Belgrade 2024","rang":8},{"course":"JO Paris 2024","rang":17},{"course":"ChM Doha 2024","rang":2},{"course":"ChM Budapest 2022","rang":10}],"t100":null,"t200":null,"v400":1.597,"v800":1.5567,"respiration":null},{"bib":8,"nom":"JOUISSE Caroline Laure","noc":"FRA","annee":null,"experience":57,"t400":"4:18.480","t800":"8:55.490","t1500":"17:10.810","v1500":1.4552,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":14},{"course":"CdM Golfo Aranci 2025","rang":4},{"course":"CdM Setubal 2025","rang":3},{"course":"CdM Funchal 2023","rang":10},{"course":"CdM Setubal 2023","rang":1},{"course":"CdM Golfo Aranci 2023","rang":5},{"course":"CdM Eilat 2022","rang":17},{"course":"CdM Ohrid 2021","rang":3},{"course":"CdM Doha 2021","rang":28},{"course":"CdM Abu Dhabi 2021","rang":5},{"course":"CdM Soma Bay 2024","rang":7},{"course":"CdM Setubal 2024","rang":4},{"course":"CdM Hong Kong 2024","rang":9},{"course":"CdM Neom 2024","rang":11},{"course":"CdM Golfo Aranci 2024","rang":5},{"course":"CdM Ibiza 2025","rang":6}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":12},{"course":"ChE Belgrade 2024","rang":9},{"course":"JO Paris 2024","rang":8},{"course":"ChM Doha 2024","rang":7},{"course":"ChM Budapest 2022","rang":31}],"t100":null,"t200":null,"v400":1.5475,"v800":1.494,"respiration":null},{"bib":9,"nom":"TADDEUCCI Ginevra","noc":"ITA","annee":1997,"experience":40,"t400":"4:15.300","t800":"8:34.310","t1500":"16:08.650","v1500":1.5485,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":2},{"course":"CdM Golfo Aranci 2025","rang":1},{"course":"CdM Setubal 2025","rang":2},{"course":"CdM Funchal 2023","rang":15},{"course":"CdM Setubal 2023","rang":5},{"course":"CdM Golfo Aranci 2023","rang":2},{"course":"CdM Eilat 2022","rang":9},{"course":"CdM Abu Dhabi 2021","rang":8},{"course":"CdM Soma Bay 2024","rang":4},{"course":"CdM Hong Kong 2024","rang":2},{"course":"CdM Neom 2024","rang":3},{"course":"CdM Golfo Aranci 2024","rang":8},{"course":"CdM Ibiza 2025","rang":7}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":2},{"course":"ChM Singapour 2025 10K","rang":2},{"course":"JO Paris 2024","rang":3},{"course":"ChM Doha 2024","rang":22},{"course":"ChM Fukuoka 2023","rang":6},{"course":"ChE Stari Grad 2025","rang":2}],"t100":null,"t200":null,"v400":1.5668,"v800":1.5555,"respiration":null},{"bib":10,"nom":"MARTINEZ GUILLEN Angela","noc":"ESP","annee":2004,"experience":17,"t400":"4:10.950","t800":"8:29.080","t1500":"16:14.950","v1500":1.5385,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":8},{"course":"CdM Golfo Aranci 2025","rang":5},{"course":"CdM Setubal 2025","rang":6},{"course":"CdM Golfo Aranci 2023","rang":10},{"course":"CdM Eilat 2022","rang":18},{"course":"CdM Soma Bay 2024","rang":3},{"course":"CdM Neom 2024","rang":12},{"course":"CdM Ibiza 2025","rang":1}],"resultats_chm":[{"course":"ChM Singapour 2025 10K","rang":5},{"course":"ChE Belgrade 2024","rang":4},{"course":"JO Paris 2024","rang":10},{"course":"ChM Doha 2024","rang":13},{"course":"ChM Budapest 2022","rang":25},{"course":"ChM Fukuoka 2023","rang":11}],"t100":null,"t200":null,"v400":1.5939,"v800":1.5715,"respiration":null},{"bib":11,"nom":"GUBECKA Chelsea","noc":"AUS","annee":1998,"experience":43,"t400":"4:14.190","t800":"8:38.440","t1500":"16:34.140","v1500":1.5088,"resultats_cdm":[{"course":"CdM Funchal 2023","rang":6},{"course":"CdM Eilat 2022","rang":1},{"course":"CdM Hong Kong 2024","rang":12}],"resultats_chm":[{"course":"ChM Singapour 2025 10K","rang":9},{"course":"JO Paris 2024","rang":14},{"course":"ChM Budapest 2022","rang":13},{"course":"ChM Fukuoka 2023","rang":2}],"t100":null,"t200":null,"v400":1.5736,"v800":1.5431,"respiration":null},{"bib":12,"nom":"SIEGEL Alex","noc":"USA","annee":2010,"experience":1,"t400":"4:13.560","t800":"8:39.520","t1500":"16:34.860","v1500":1.5077,"resultats_cdm":[],"resultats_chm":[],"t100":null,"t200":null,"v400":1.5775,"v800":1.5399,"respiration":null},{"bib":13,"nom":"MONACO Bianca Alexis","noc":"AUS","annee":2007,"experience":0,"t400":"4:36.990","t800":"9:20.920","t1500":"17:36.130","v1500":1.4203,"resultats_cdm":[],"resultats_chm":[],"t100":null,"t200":null,"v400":1.4441,"v800":1.4262,"respiration":null},{"bib":14,"nom":"OSSOLI Alessia","noc":"ITA","annee":null,"experience":5,"t400":"4:21.620","t800":"8:54.360","t1500":"16:59.680","v1500":1.471,"resultats_cdm":[{"course":"CdM Golfo Aranci 2025","rang":22},{"course":"CdM Golfo Aranci 2023","rang":34},{"course":"CdM Ibiza 2025","rang":21}],"resultats_chm":[],"t100":null,"t200":null,"v400":1.5289,"v800":1.4971,"respiration":null},{"bib":15,"nom":"DELACROIX Ines","noc":"FRA","annee":null,"experience":19,"t400":"4:15.310","t800":"8:43.640","t1500":"16:29.240","v1500":1.5163,"resultats_cdm":[{"course":"CdM Golfo Aranci 2025","rang":15},{"course":"CdM Setubal 2025","rang":15},{"course":"CdM Funchal 2023","rang":42},{"course":"CdM Soma Bay 2024","rang":17},{"course":"CdM Setubal 2024","rang":5},{"course":"CdM Hong Kong 2024","rang":14},{"course":"CdM Neom 2024","rang":19},{"course":"CdM Golfo Aranci 2024","rang":11},{"course":"CdM Ibiza 2025","rang":4}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":9},{"course":"ChM Singapour 2025 10K","rang":12},{"course":"ChE Stari Grad 2025","rang":10}],"t100":null,"t200":null,"v400":1.5667,"v800":1.5278,"respiration":null},{"bib":16,"nom":"GENDARMI Alessandra","noc":"USA","annee":2008,"experience":0,"t400":"4:24.150","t800":"9:08.060","t1500":"17:19.490","v1500":1.443,"resultats_cdm":[],"resultats_chm":[],"t100":null,"t200":null,"v400":1.5143,"v800":1.4597,"respiration":null},{"bib":17,"nom":"LAPENA RUIZ Julia","noc":"ESP","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[],"resultats_chm":[],"t100":null,"t200":null,"v400":null,"v800":null,"respiration":null},{"bib":18,"nom":"RUBIO VILLORIA Alba","noc":"ESP","annee":null,"experience":0,"t400":"4:35.670","t800":"9:03.590","t1500":"16:56.260","v1500":1.476,"resultats_cdm":[],"resultats_chm":[],"t100":null,"t200":null,"v400":1.451,"v800":1.4717,"respiration":null},{"bib":19,"nom":"MISZLAI Mira","noc":"HUN","annee":2008,"experience":0,"t400":"4:31.380","t800":"9:21.000","t1500":null,"v1500":null,"resultats_cdm":[],"resultats_chm":[],"t100":null,"t200":null,"v400":1.4739,"v800":1.426,"respiration":null},{"bib":20,"nom":"KASVIO Louna","noc":"FIN","annee":null,"experience":3,"t400":"4:19.690","t800":"8:49.610","t1500":"16:51.300","v1500":1.4832,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":16},{"course":"CdM Golfo Aranci 2025","rang":24},{"course":"CdM Setubal 2025","rang":16},{"course":"CdM Ibiza 2025","rang":24}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":26},{"course":"ChM Singapour 2025 10K","rang":19},{"course":"ChE Stari Grad 2025","rang":14}],"t100":null,"t200":null,"v400":1.5403,"v800":1.5105,"respiration":null},{"bib":21,"nom":"BRUHIN Anina","noc":"SUI","annee":null,"experience":4,"t400":"4:28.110","t800":"9:17.500","t1500":"17:48.710","v1500":1.4036,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":34},{"course":"CdM Ibiza 2025","rang":44}],"resultats_chm":[],"t100":null,"t200":null,"v400":1.4919,"v800":1.435,"respiration":null},{"bib":22,"nom":"WEINSTEIN Claire","noc":"USA","annee":2007,"experience":0,"t400":"4:01.260","t800":"8:21.000","t1500":"16:09.850","v1500":1.5466,"resultats_cdm":[{"course":"CdM Funchal 2023","rang":1},{"course":"CdM Golfo Aranci 2023","rang":24},{"course":"CdM Hong Kong 2024","rang":15}],"resultats_chm":[],"t100":null,"t200":null,"v400":1.658,"v800":1.5968,"respiration":null},{"bib":23,"nom":"KRITZINGER Tiana","noc":"AUS","annee":2005,"experience":0,"t400":"4:11.730","t800":"8:32.630","t1500":"16:16.040","v1500":1.5368,"resultats_cdm":[],"resultats_chm":[],"t100":null,"t200":null,"v400":1.589,"v800":1.5606,"respiration":null},{"bib":24,"nom":"OTERO FERNANDEZ Paula","noc":"ESP","annee":2004,"experience":5,"t400":"4:10.500","t800":"8:36.440","t1500":"16:16.610","v1500":1.5359,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":17},{"course":"CdM Golfo Aranci 2025","rang":14},{"course":"CdM Soma Bay 2024","rang":15},{"course":"CdM Neom 2024","rang":23},{"course":"CdM Ibiza 2025","rang":12}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":17},{"course":"ChE Stari Grad 2025","rang":6}],"t100":null,"t200":null,"v400":1.5968,"v800":1.5491,"respiration":null},{"bib":25,"nom":"ROCA FORTUNY Marina","noc":"ESP","annee":null,"experience":0,"t400":"4:36.080","t800":"9:35.550","t1500":"18:30.920","v1500":1.3502,"resultats_cdm":[{"course":"CdM Ibiza 2025","rang":50}],"resultats_chm":[],"t100":null,"t200":null,"v400":1.4489,"v800":1.39,"respiration":null},{"bib":26,"nom":"FABIAN Bettina","noc":"HUN","annee":2004,"experience":28,"t400":"4:08.860","t800":"8:37.330","t1500":"16:27.390","v1500":1.5192,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":5},{"course":"CdM Setubal 2025","rang":10},{"course":"CdM Funchal 2023","rang":2},{"course":"CdM Setubal 2023","rang":4},{"course":"CdM Eilat 2022","rang":12},{"course":"CdM Soma Bay 2024","rang":2},{"course":"CdM Setubal 2024","rang":5},{"course":"CdM Neom 2024","rang":5},{"course":"CdM Golfo Aranci 2024","rang":6},{"course":"CdM Ibiza 2025","rang":3}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":11},{"course":"ChE Belgrade 2024","rang":5},{"course":"JO Paris 2024","rang":5},{"course":"ChM Doha 2024","rang":12},{"course":"ChM Fukuoka 2023","rang":9},{"course":"ChE Stari Grad 2025","rang":5}],"t100":null,"t200":null,"v400":1.6073,"v800":1.5464,"respiration":null},{"bib":27,"nom":"KRASNOHORSKA Hana","noc":"SVK","annee":null,"experience":2,"t400":"4:39.940","t800":"9:30.090","t1500":"18:29.340","v1500":1.3522,"resultats_cdm":[],"resultats_chm":[{"course":"ChE Belgrade 2024","rang":26},{"course":"ChE Stari Grad 2025","rang":23}],"t100":null,"t200":null,"v400":1.4289,"v800":1.4033,"respiration":null},{"bib":28,"nom":"MARTINEZ DE SALINAS PENA Angela","noc":"ESP","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[],"resultats_chm":[],"t100":null,"t200":null,"v400":null,"v800":null,"respiration":null},{"bib":29,"nom":"ORTIZ DE GUINEA BASTON Arianna","noc":"ESP","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[],"resultats_chm":[],"t100":null,"t200":null,"v400":null,"v800":null,"respiration":null},{"bib":30,"nom":"GAUDAIRE Lou-Ann Katy","noc":"FRA","annee":null,"experience":0,"t400":"4:18.560","t800":"8:54.360","t1500":"16:45.860","v1500":1.4913,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":30}],"resultats_chm":[],"t100":null,"t200":null,"v400":1.547,"v800":1.4971,"respiration":null},{"bib":31,"nom":"COCCORDANO Clemence","noc":"FRA","annee":2005,"experience":11,"t400":"4:19.330","t800":"8:49.550","t1500":"16:31.830","v1500":1.5124,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":21},{"course":"CdM Golfo Aranci 2025","rang":9},{"course":"CdM Funchal 2023","rang":43}],"resultats_chm":[],"t100":null,"t200":null,"v400":1.5424,"v800":1.5107,"respiration":null},{"bib":32,"nom":"BEUZEVILLE Macy May","noc":"AUS","annee":2007,"experience":0,"t400":"4:26.530","t800":"9:06.300","t1500":"17:18.750","v1500":1.444,"resultats_cdm":[],"resultats_chm":[],"t100":null,"t200":null,"v400":1.5008,"v800":1.4644,"respiration":null},{"bib":33,"nom":"TARASIEWICZ Klaudia","noc":"POL","annee":2004,"experience":8,"t400":"4:11.130","t800":"8:39.610","t1500":"16:44.120","v1500":1.4938,"resultats_cdm":[{"course":"CdM Golfo Aranci 2025","rang":2}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":25},{"course":"ChM Singapour 2025 10K","rang":18},{"course":"ChE Belgrade 2024","rang":17},{"course":"ChE Stari Grad 2025","rang":4}],"t100":null,"t200":null,"v400":1.5928,"v800":1.5396,"respiration":null},{"bib":34,"nom":"SANCHEZ LORA Candela","noc":"ESP","annee":2003,"experience":20,"t400":"4:18.540","t800":"8:45.410","t1500":"16:38.480","v1500":1.5023,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":19},{"course":"CdM Golfo Aranci 2025","rang":18},{"course":"CdM Funchal 2023","rang":50},{"course":"CdM Golfo Aranci 2023","rang":22},{"course":"CdM Eilat 2022","rang":34},{"course":"CdM Soma Bay 2024","rang":9},{"course":"CdM Neom 2024","rang":14},{"course":"CdM Ibiza 2025","rang":9}],"resultats_chm":[{"course":"ChE Belgrade 2024","rang":19},{"course":"ChM Fukuoka 2023","rang":14},{"course":"ChE Stari Grad 2025","rang":8}],"t100":null,"t200":null,"v400":1.5471,"v800":1.5226,"respiration":null},{"bib":35,"nom":"FREDERSDORF Emma","noc":"SUI","annee":null,"experience":9,"t400":"4:30.120","t800":"9:10.190","t1500":"17:19.510","v1500":1.443,"resultats_cdm":[{"course":"CdM Ibiza 2025","rang":42}],"resultats_chm":[],"t100":null,"t200":null,"v400":1.4808,"v800":1.454,"respiration":null},{"bib":36,"nom":"MEQDAR Malak","noc":"MAR","annee":null,"experience":0,"t400":"4:35.620","t800":"9:22.900","t1500":"17:46.690","v1500":1.4062,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":33},{"course":"CdM Golfo Aranci 2025","rang":33},{"course":"CdM Setubal 2025","rang":28},{"course":"CdM Neom 2024","rang":27}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":34},{"course":"ChM Singapour 2025 10K","rang":35}],"t100":null,"t200":null,"v400":1.4513,"v800":1.4212,"respiration":null},{"bib":37,"nom":"ARELLANOS Maria Fernanda","noc":"PER","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[],"resultats_chm":[],"t100":null,"t200":null,"v400":null,"v800":null,"respiration":null},{"bib":38,"nom":"POU Lisa","noc":"MON","annee":1999,"experience":44,"t400":"4:17.600","t800":"8:40.020","t1500":"16:34.730","v1500":1.5079,"resultats_cdm":[{"course":"CdM Ibiza 2025","rang":22}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":6},{"course":"ChM Singapour 2025 10K","rang":3},{"course":"ChE Belgrade 2024","rang":6},{"course":"JO Paris 2024","rang":18},{"course":"ChM Doha 2024","rang":9}],"t100":null,"t200":null,"v400":1.5528,"v800":1.5384,"respiration":null},{"bib":39,"nom":"BRAMONT-ARIAS Maria","noc":"PER","annee":null,"experience":0,"t400":"4:21.660","t800":"8:57.500","t1500":"16:56.250","v1500":1.476,"resultats_cdm":[{"course":"CdM Funchal 2023","rang":32},{"course":"CdM Golfo Aranci 2023","rang":14},{"course":"CdM Eilat 2022","rang":25},{"course":"CdM Doha 2021","rang":32},{"course":"CdM Abu Dhabi 2021","rang":21},{"course":"CdM Golfo Aranci 2024","rang":22}],"resultats_chm":[{"course":"JO Paris 2024","rang":21},{"course":"ChM Doha 2024","rang":25},{"course":"ChM Budapest 2022","rang":37},{"course":"ChM Fukuoka 2023","rang":22}],"t100":null,"t200":null,"v400":1.5287,"v800":1.4884,"respiration":null},{"bib":40,"nom":"TORTORA Elena","noc":"ITA","annee":null,"experience":7,"t400":"4:22.920","t800":"8:54.050","t1500":"16:48.330","v1500":1.4876,"resultats_cdm":[{"course":"CdM Setubal 2025","rang":14},{"course":"CdM Funchal 2023","rang":39},{"course":"CdM Golfo Aranci 2024","rang":30},{"course":"CdM Ibiza 2025","rang":20}],"resultats_chm":[],"t100":null,"t200":null,"v400":1.5214,"v800":1.498,"respiration":null},{"bib":41,"nom":"EBINA Airi","noc":"JPN","annee":2001,"experience":13,"t400":"4:22.730","t800":"8:49.390","t1500":"16:39.360","v1500":1.501,"resultats_cdm":[{"course":"CdM Setubal 2025","rang":21},{"course":"CdM Setubal 2023","rang":15},{"course":"CdM Golfo Aranci 2023","rang":19},{"course":"CdM Eilat 2022","rang":36},{"course":"CdM Neom 2024","rang":18},{"course":"CdM Golfo Aranci 2024","rang":7},{"course":"CdM Ibiza 2025","rang":29}],"resultats_chm":[{"course":"JO Paris 2024","rang":13},{"course":"ChM Doha 2024","rang":11},{"course":"ChM Budapest 2022","rang":21},{"course":"ChM Fukuoka 2023","rang":28}],"t100":null,"t200":null,"v400":1.5225,"v800":1.5112,"respiration":null},{"bib":42,"nom":"MANN Becca","noc":"USA","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[],"resultats_chm":[],"t100":null,"t200":null,"v400":null,"v800":null,"respiration":null},{"bib":43,"nom":"JAEN SERRA Naira","noc":"ESP","annee":null,"experience":0,"t400":"4:38.120","t800":null,"t1500":"17:50.230","v1500":1.4016,"resultats_cdm":[],"resultats_chm":[],"t100":null,"t200":null,"v400":1.4382,"v800":null,"respiration":null},{"bib":44,"nom":"KAJIMOTO Ichika","noc":"JPN","annee":2004,"experience":2,"t400":"4:09.650","t800":"8:29.240","t1500":"16:23.020","v1500":1.5259,"resultats_cdm":[{"course":"CdM Setubal 2025","rang":19},{"course":"CdM Neom 2024","rang":8},{"course":"CdM Ibiza 2025","rang":14}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":3},{"course":"ChM Singapour 2025 10K","rang":8},{"course":"ChM Doha 2024","rang":21}],"t100":null,"t200":null,"v400":1.6022,"v800":1.571,"respiration":null},{"bib":45,"nom":"DENIGAN Mariah","noc":"USA","annee":2003,"experience":18,"t400":"4:15.110","t800":"8:34.930","t1500":"16:19.020","v1500":1.5321,"resultats_cdm":[{"course":"CdM Golfo Aranci 2025","rang":12},{"course":"CdM Funchal 2023","rang":4},{"course":"CdM Golfo Aranci 2023","rang":6},{"course":"CdM Eilat 2022","rang":8},{"course":"CdM Abu Dhabi 2021","rang":12},{"course":"CdM Golfo Aranci 2024","rang":10}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":13},{"course":"ChM Singapour 2025 10K","rang":14},{"course":"JO Paris 2024","rang":16},{"course":"ChM Doha 2024","rang":6},{"course":"ChM Budapest 2022","rang":15},{"course":"ChM Fukuoka 2023","rang":8}],"t100":null,"t200":null,"v400":1.568,"v800":1.5536,"respiration":null},{"bib":46,"nom":"MIHALYVARI-FARKAS Viktoria","noc":"HUN","annee":null,"experience":0,"t400":"4:13.050","t800":"8:30.900","t1500":"16:11.710","v1500":1.5437,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":7},{"course":"CdM Golfo Aranci 2025","rang":13},{"course":"CdM Setubal 2025","rang":4},{"course":"CdM Ibiza 2025","rang":10}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":7},{"course":"ChM Singapour 2025 10K","rang":13},{"course":"ChE Stari Grad 2025","rang":1}],"t100":null,"t200":null,"v400":1.5807,"v800":1.5659,"respiration":null},{"bib":47,"nom":"DECRAENE Sioban","noc":"BEL","annee":null,"experience":0,"t400":"4:26.060","t800":"9:01.080","t1500":"17:10.420","v1500":1.4557,"resultats_cdm":[],"resultats_chm":[],"t100":null,"t200":null,"v400":1.5034,"v800":1.4785,"respiration":null},{"bib":48,"nom":"RODRIGUEZ RODRIGUEZ Paula","noc":"ESP","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[],"resultats_chm":[],"t100":null,"t200":null,"v400":null,"v800":null,"respiration":null},{"bib":49,"nom":"GONZALEZ VAZQUEZ Maria","noc":"ESP","annee":null,"experience":0,"t400":"4:40.450","t800":null,"t1500":"17:55.340","v1500":1.3949,"resultats_cdm":[],"resultats_chm":[],"t100":null,"t200":null,"v400":1.4263,"v800":null,"respiration":null},{"bib":50,"nom":"NAGY Napsugar","noc":"HUN","annee":2008,"experience":14,"t400":"4:14.720","t800":"8:38.650","t1500":"16:21.750","v1500":1.5279,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":27},{"course":"CdM Golfo Aranci 2025","rang":32}],"resultats_chm":[],"t100":null,"t200":null,"v400":1.5704,"v800":1.5425,"respiration":null},{"bib":51,"nom":"BERTON Giulia","noc":"ITA","annee":2001,"experience":9,"t400":"4:18.980","t800":"8:46.570","t1500":"16:38.680","v1500":1.502,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":11},{"course":"CdM Golfo Aranci 2025","rang":20},{"course":"CdM Ibiza 2025","rang":17}],"resultats_chm":[],"t100":null,"t200":null,"v400":1.5445,"v800":1.5193,"respiration":null},{"bib":52,"nom":"GIORDANINO Candela","noc":"ARG","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[{"course":"CdM Golfo Aranci 2023","rang":20},{"course":"CdM Eilat 2022","rang":30}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":30},{"course":"ChM Singapour 2025 10K","rang":27},{"course":"ChM Doha 2024","rang":33},{"course":"ChM Budapest 2022","rang":23},{"course":"ChM Fukuoka 2023","rang":36}],"t100":null,"t200":null,"v400":null,"v800":null,"respiration":null},{"bib":53,"nom":"ABAD Ana","noc":"ECU","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":32},{"course":"CdM Ibiza 2025","rang":27}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":38},{"course":"ChM Singapour 2025 10K","rang":34},{"course":"ChM Doha 2024","rang":46}],"t100":null,"t200":null,"v400":null,"v800":null,"respiration":null},{"bib":54,"nom":"COLL MARTI Julia","noc":"ESP","annee":null,"experience":0,"t400":"4:21.570","t800":"8:53.220","t1500":"17:00.490","v1500":1.4699,"resultats_cdm":[{"course":"CdM Ibiza 2025","rang":39}],"resultats_chm":[],"t100":null,"t200":null,"v400":1.5292,"v800":1.5003,"respiration":null},{"bib":55,"nom":"PLESKOTOVA Julie","noc":"CZE","annee":null,"experience":14,"t400":"4:26.200","t800":"9:07.920","t1500":"17:23.080","v1500":1.438,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":28},{"course":"CdM Golfo Aranci 2025","rang":29},{"course":"CdM Setubal 2023","rang":12},{"course":"CdM Neom 2024","rang":22},{"course":"CdM Golfo Aranci 2024","rang":23},{"course":"CdM Ibiza 2025","rang":26}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":18},{"course":"ChM Singapour 2025 10K","rang":23},{"course":"ChE Belgrade 2024","rang":22}],"t100":null,"t200":null,"v400":1.5026,"v800":1.4601,"respiration":null},{"bib":56,"nom":"TWICHELL Ashley","noc":"USA","annee":1989,"experience":0,"t400":"4:13.310","t800":"8:32.750","t1500":"16:08.070","v1500":1.5495,"resultats_cdm":[{"course":"CdM Funchal 2023","rang":35},{"course":"CdM Golfo Aranci 2023","rang":11}],"resultats_chm":[{"course":"JO Tokyo 2021","rang":7}],"t100":null,"t200":null,"v400":1.5791,"v800":1.5602,"respiration":null},{"bib":57,"nom":"GARCES Sofia","noc":"ARG","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[],"resultats_chm":[],"t100":null,"t200":null,"v400":null,"v800":null,"respiration":null},{"bib":58,"nom":"DAVISON-MCGOVERN Jacqueline","noc":"AUS","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[{"course":"CdM Funchal 2023","rang":28},{"course":"CdM Hong Kong 2024","rang":6}],"resultats_chm":[],"t100":null,"t200":null,"v400":null,"v800":null,"respiration":null},{"bib":59,"nom":"CAPONI Linda","noc":"ITA","annee":null,"experience":1,"t400":"4:11.640","t800":"8:48.350","t1500":"16:51.090","v1500":1.4835,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":9},{"course":"CdM Golfo Aranci 2025","rang":6},{"course":"CdM Setubal 2025","rang":12},{"course":"CdM Ibiza 2025","rang":16}],"resultats_chm":[{"course":"ChE Stari Grad 2025","rang":7}],"t100":null,"t200":null,"v400":1.5896,"v800":1.5141,"respiration":null},{"bib":60,"nom":"JOHNSON Moesha","noc":"AUS","annee":1997,"experience":15,"t400":"4:06.940","t800":"8:25.420","t1500":"15:55.750","v1500":1.5694,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":1},{"course":"CdM Golfo Aranci 2025","rang":11},{"course":"CdM Setubal 2025","rang":1},{"course":"CdM Funchal 2023","rang":19},{"course":"CdM Soma Bay 2023","rang":10},{"course":"CdM Eilat 2022","rang":22},{"course":"CdM Setubal 2024","rang":8},{"course":"CdM Hong Kong 2024","rang":1},{"course":"CdM Neom 2024","rang":1}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":1},{"course":"ChM Singapour 2025 10K","rang":1},{"course":"JO Paris 2024","rang":2},{"course":"ChM Doha 2024","rang":4},{"course":"ChM Budapest 2022","rang":9}],"t100":null,"t200":null,"v400":1.6198,"v800":1.5828,"respiration":null},{"bib":61,"nom":"RECUERO DIAZ Laura","noc":"ESP","annee":null,"experience":0,"t400":"4:35.670","t800":null,"t1500":"17:45.890","v1500":1.4073,"resultats_cdm":[],"resultats_chm":[],"t100":null,"t200":null,"v400":1.451,"v800":null,"respiration":null},{"bib":62,"nom":"SMITH Rylee Mae","noc":"AUS","annee":2008,"experience":0,"t400":"4:29.130","t800":"9:14.700","t1500":"17:33.920","v1500":1.4233,"resultats_cdm":[],"resultats_chm":[],"t100":null,"t200":null,"v400":1.4863,"v800":1.4422,"respiration":null},{"bib":63,"nom":"BOY Lea","noc":"GER","annee":2000,"experience":54,"t400":"4:10.490","t800":"8:42.640","t1500":"16:43.240","v1500":1.4952,"resultats_cdm":[{"course":"CdM Setubal 2024","rang":1},{"course":"CdM Golfo Aranci 2024","rang":26},{"course":"CdM Ibiza 2025","rang":5}],"resultats_chm":[{"course":"ChE Belgrade 2024","rang":10},{"course":"ChM Budapest 2022","rang":8},{"course":"ChM Fukuoka 2023","rang":7}],"t100":null,"t200":null,"v400":1.5969,"v800":1.5307,"respiration":null},{"bib":64,"nom":"CASSAR Manoli","noc":"FRA","annee":null,"experience":1,"t400":"4:21.440","t800":"8:48.730","t1500":"16:46.960","v1500":1.4896,"resultats_cdm":[],"resultats_chm":[],"t100":null,"t200":null,"v400":1.53,"v800":1.5131,"respiration":null},{"bib":65,"nom":"TRAVIS Brooke","noc":"USA","annee":2000,"experience":3,"t400":"4:18.280","t800":"8:44.830","t1500":"16:42.590","v1500":1.4961,"resultats_cdm":[{"course":"CdM Golfo Aranci 2025","rang":16},{"course":"CdM Abu Dhabi 2021","rang":36},{"course":"CdM Hong Kong 2024","rang":16},{"course":"CdM Ibiza 2025","rang":28}],"resultats_chm":[],"t100":null,"t200":null,"v400":1.5487,"v800":1.5243,"respiration":null},{"bib":66,"nom":"MENDES Mariana","noc":"POR","annee":null,"experience":7,"t400":"4:28.940","t800":"9:00.560","t1500":"16:55.620","v1500":1.4769,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":31},{"course":"CdM Setubal 2024","rang":14},{"course":"CdM Neom 2024","rang":21}],"resultats_chm":[{"course":"ChE Stari Grad 2025","rang":20}],"t100":null,"t200":null,"v400":1.4873,"v800":1.4799,"respiration":null},{"bib":67,"nom":"DEURLOO Sienna","noc":"AUS","annee":2005,"experience":0,"t400":"4:23.470","t800":"8:56.450","t1500":"16:59.640","v1500":1.4711,"resultats_cdm":[],"resultats_chm":[],"t100":null,"t200":null,"v400":1.5182,"v800":1.4913,"respiration":null}];
+const DATA_H = [{"bib":1,"nom":"FERNANDEZ ALPERI Herminio","noc":"ESP","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[],"resultats_chm":[],"v400":null,"v800":null,"respiration":null},{"bib":2,"nom":"PITTLIK Zsigmond Gabor","noc":"HUN","annee":null,"experience":0,"t400":"4:10.200","t800":"8:42.290","t1500":"16:40.730","v1500":1.4989,"resultats_cdm":[{"course":"CdM Golfo Aranci 2025","rang":45}],"resultats_chm":[],"v400":1.5987,"v800":1.5317,"respiration":null},{"bib":3,"nom":"TEPPER Joey","noc":"USA","annee":null,"experience":4,"t400":"3:52.150","t800":"8:03.360","t1500":"15:38.190","v1500":1.5988,"resultats_cdm":[{"course":"CdM Setubal 2025","rang":24},{"course":"CdM Funchal 2023","rang":47},{"course":"CdM Golfo Aranci 2023","rang":10},{"course":"CdM Ibiza 2025","rang":5}],"resultats_chm":[{"course":"ChM Fukuoka 2023","rang":36}],"v400":1.723,"v800":1.6551,"respiration":null},{"bib":4,"nom":"BROWN Joshua","noc":"USA","annee":2003,"experience":0,"t400":"3:55.050","t800":"8:00.170","t1500":"15:18.140","v1500":1.6337,"resultats_cdm":[{"course":"CdM Funchal 2023","rang":42},{"course":"CdM Abu Dhabi 2021","rang":55}],"resultats_chm":[],"v400":1.7018,"v800":1.6661,"respiration":null},{"bib":5,"nom":"VAN HEIRWEGHE Maxime","noc":"BEL","annee":2008,"experience":0,"t400":"4:03.800","t800":"8:22.770","t1500":"16:00.150","v1500":1.5623,"resultats_cdm":[],"resultats_chm":[],"v400":1.6407,"v800":1.5912,"respiration":null},{"bib":6,"nom":"ARMSTRONG Bailey","noc":"AUS","annee":null,"experience":26,"t400":"4:02.040","t800":"8:27.170","t1500":"16:11.250","v1500":1.5444,"resultats_cdm":[{"course":"CdM Golfo Aranci 2025","rang":13},{"course":"CdM Funchal 2023","rang":12},{"course":"CdM Eilat 2022","rang":24},{"course":"CdM Eilat 2021","rang":9},{"course":"CdM Abu Dhabi 2021","rang":22},{"course":"CdM Golfo Aranci 2024","rang":27},{"course":"CdM Soma Bay 2025","rang":15},{"course":"CdM Hong Kong 2024","rang":17},{"course":"CdM Ibiza 2025","rang":38}],"resultats_chm":[{"course":"ChM Fukuoka 2023","rang":34},{"course":"ChM Budapest 2022","rang":32}],"v400":1.6526,"v800":1.5774,"respiration":null},{"bib":7,"nom":"GARCIA FERNANDEZ Erik","noc":"ESP","annee":null,"experience":0,"t400":"4:14.560","t800":"8:39.420","t1500":"16:19.130","v1500":1.532,"resultats_cdm":[{"course":"CdM Ibiza 2025","rang":53}],"resultats_chm":[],"v400":1.5713,"v800":1.5402,"respiration":null},{"bib":8,"nom":"MESMACQUE Emile","noc":"FRA","annee":null,"experience":5,"t400":"3:57.100","t800":"8:10.190","t1500":"15:52.450","v1500":1.5749,"resultats_cdm":[{"course":"CdM Golfo Aranci 2025","rang":20},{"course":"CdM Setubal 2024","rang":15},{"course":"CdM Soma Bay 2025","rang":21},{"course":"CdM Ibiza 2025","rang":22}],"resultats_chm":[],"v400":1.6871,"v800":1.632,"respiration":null},{"bib":9,"nom":"GIOVANNONI Ivan","noc":"ITA","annee":2002,"experience":14,"t400":"3:51.680","t800":"7:54.290","t1500":"15:04.700","v1500":1.658,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":24},{"course":"CdM Golfo Aranci 2025","rang":11},{"course":"CdM Golfo Aranci 2023","rang":39},{"course":"CdM Soma Bay 2024","rang":16},{"course":"CdM Golfo Aranci 2024","rang":28},{"course":"CdM Setubal 2024","rang":5},{"course":"CdM Soma Bay 2025","rang":13},{"course":"CdM Neom 2024","rang":23},{"course":"CdM Ibiza 2025","rang":20}],"resultats_chm":[],"v400":1.7265,"v800":1.6867,"respiration":null},{"bib":10,"nom":"CACERES CARRION Cristobal","noc":"ESP","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[],"resultats_chm":[],"v400":null,"v800":null,"respiration":null},{"bib":11,"nom":"ULAC Dogukan","noc":"TUR","annee":null,"experience":0,"t400":"4:02.580","t800":"8:14.120","t1500":"15:46.260","v1500":1.5852,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":40},{"course":"CdM Golfo Aranci 2025","rang":47}],"resultats_chm":[{"course":"ChE Stari Grad 2025","rang":27}],"v400":1.6489,"v800":1.619,"respiration":null},{"bib":12,"nom":"OLIVIER Marc-Antoine","noc":"FRA","annee":1996,"experience":66,"t400":"3:49.100","t800":"7:49.140","t1500":"14:55.190","v1500":1.6756,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":4},{"course":"CdM Golfo Aranci 2025","rang":14},{"course":"CdM Setubal 2025","rang":1},{"course":"CdM Funchal 2023","rang":8},{"course":"CdM Golfo Aranci 2023","rang":9},{"course":"CdM Soma Bay 2023","rang":2},{"course":"CdM Eilat 2022","rang":2},{"course":"CdM Eilat 2021","rang":1},{"course":"CdM Ohrid 2021","rang":1},{"course":"CdM Doha 2021","rang":1},{"course":"CdM Soma Bay 2024","rang":4},{"course":"CdM Golfo Aranci 2024","rang":1},{"course":"CdM Setubal 2024","rang":4},{"course":"CdM Soma Bay 2025","rang":3},{"course":"CdM Neom 2024","rang":3},{"course":"CdM Hong Kong 2024","rang":3},{"course":"CdM Ibiza 2025","rang":4}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":3},{"course":"JO Tokyo 2021","rang":6},{"course":"ChE Belgrade 2024","rang":2},{"course":"ChM Doha 2024","rang":2},{"course":"ChM Budapest 2022","rang":4},{"course":"ChE Stari Grad 2025","rang":3}],"v400":1.746,"v800":1.7052,"respiration":null},{"bib":13,"nom":"CASO Vincenzo","noc":"ITA","annee":1998,"experience":0,"t400":"3:57.670","t800":"8:03.470","t1500":"15:19.050","v1500":1.6321,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":34},{"course":"CdM Golfo Aranci 2025","rang":28},{"course":"CdM Setubal 2025","rang":19},{"course":"CdM Golfo Aranci 2024","rang":20},{"course":"CdM Soma Bay 2025","rang":37},{"course":"CdM Ibiza 2025","rang":10}],"resultats_chm":[],"v400":1.683,"v800":1.6547,"respiration":null},{"bib":14,"nom":"RODRIGUEZ DIAZ Javier","noc":"ESP","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[],"resultats_chm":[],"v400":null,"v800":null,"respiration":null},{"bib":15,"nom":"CASSINI Franco Ivo","noc":"ARG","annee":null,"experience":0,"t400":null,"t800":"8:03.340","t1500":null,"v1500":null,"resultats_cdm":[{"course":"CdM Funchal 2023","rang":33},{"course":"CdM Golfo Aranci 2023","rang":54},{"course":"CdM Doha 2021","rang":18}],"resultats_chm":[{"course":"ChM Doha 2024","rang":35},{"course":"ChM Fukuoka 2023","rang":21},{"course":"ChM Budapest 2022","rang":24}],"v400":null,"v800":1.6551,"respiration":null},{"bib":16,"nom":"CHAVARRIA MITJAVILA Joan","noc":"ESP","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[],"resultats_chm":[],"v400":null,"v800":null,"respiration":null},{"bib":17,"nom":"VELLY Sacha","noc":"FRA","annee":2005,"experience":22,"t400":"3:49.580","t800":"7:53.910","t1500":"14:53.620","v1500":1.6786,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":15},{"course":"CdM Golfo Aranci 2025","rang":5},{"course":"CdM Setubal 2025","rang":2},{"course":"CdM Funchal 2023","rang":13},{"course":"CdM Soma Bay 2023","rang":10},{"course":"CdM Doha 2021","rang":40},{"course":"CdM Abu Dhabi 2021","rang":6},{"course":"CdM Soma Bay 2025","rang":5},{"course":"CdM Neom 2024","rang":2},{"course":"CdM Ibiza 2025","rang":12}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":19},{"course":"ChE Belgrade 2024","rang":10},{"course":"ChM Fukuoka 2023","rang":12},{"course":"ChM Budapest 2022","rang":19},{"course":"ChE Stari Grad 2025","rang":6}],"v400":1.7423,"v800":1.6881,"respiration":null},{"bib":18,"nom":"WELLBROCK Florian","noc":"GER","annee":1997,"experience":23,"t400":"3:45.290","t800":"7:39.630","t1500":"14:34.890","v1500":1.7145,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":1},{"course":"CdM Setubal 2025","rang":6},{"course":"CdM Funchal 2023","rang":20},{"course":"CdM Soma Bay 2023","rang":1},{"course":"CdM Abu Dhabi 2021","rang":1},{"course":"CdM Soma Bay 2025","rang":1},{"course":"CdM Neom 2024","rang":1}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":1},{"course":"JO Tokyo 2021","rang":1},{"course":"JO Paris 2024","rang":8},{"course":"ChM Doha 2024","rang":29},{"course":"ChM Fukuoka 2023","rang":1},{"course":"ChM Budapest 2022","rang":3}],"v400":1.7755,"v800":1.7405,"respiration":"Droite"},{"bib":19,"nom":"NIEDERBERGER Paul","noc":"SUI","annee":null,"experience":6,"t400":"4:02.230","t800":"8:13.950","t1500":"15:40.480","v1500":1.5949,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":26},{"course":"CdM Golfo Aranci 2025","rang":22},{"course":"CdM Soma Bay 2025","rang":22},{"course":"CdM Hong Kong 2024","rang":8},{"course":"CdM Ibiza 2025","rang":19}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":11},{"course":"ChE Stari Grad 2025","rang":14}],"v400":1.6513,"v800":1.6196,"respiration":null},{"bib":20,"nom":"KOVACS-SERES Hunor","noc":"HUN","annee":null,"experience":18,"t400":"3:54.460","t800":"8:00.210","t1500":"15:17.290","v1500":1.6353,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":14},{"course":"CdM Golfo Aranci 2025","rang":42},{"course":"CdM Funchal 2023","rang":72},{"course":"CdM Setubal 2023","rang":13},{"course":"CdM Soma Bay 2023","rang":22},{"course":"CdM Eilat 2022","rang":40},{"course":"CdM Ibiza 2025","rang":30}],"resultats_chm":[{"course":"ChE Stari Grad 2025","rang":20}],"v400":1.706,"v800":1.6659,"respiration":null},{"bib":21,"nom":"ESCOBAR Percy","noc":"BOL","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[],"resultats_chm":[],"v400":null,"v800":null,"respiration":null},{"bib":22,"nom":"CACIK Rastislav","noc":"SVK","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[],"resultats_chm":[],"v400":null,"v800":null,"respiration":null},{"bib":23,"nom":"PALTRINIERI Gregorio","noc":"ITA","annee":1994,"experience":45,"t400":"3:49.270","t800":"7:39.380","t1500":"14:34.550","v1500":1.7152,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":7},{"course":"CdM Funchal 2023","rang":11},{"course":"CdM Golfo Aranci 2023","rang":6},{"course":"CdM Eilat 2022","rang":1},{"course":"CdM Doha 2021","rang":3},{"course":"CdM Soma Bay 2024","rang":2},{"course":"CdM Golfo Aranci 2024","rang":33},{"course":"CdM Ibiza 2025","rang":15}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":2},{"course":"JO Tokyo 2021","rang":3},{"course":"JO Paris 2024","rang":9},{"course":"ChE Belgrade 2024","rang":1},{"course":"ChM Fukuoka 2023","rang":5},{"course":"ChM Budapest 2022","rang":1},{"course":"ChE Stari Grad 2025","rang":4}],"v400":1.7447,"v800":1.7415,"respiration":null},{"bib":24,"nom":"MARCHELLO Davide","noc":"ITA","annee":2001,"experience":3,"t400":"3:47.430","t800":"7:53.320","t1500":"15:08.990","v1500":1.6502,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":21},{"course":"CdM Golfo Aranci 2023","rang":52}],"resultats_chm":[],"v400":1.7588,"v800":1.6902,"respiration":null},{"bib":25,"nom":"GUIDI Marcello","noc":"ITA","annee":1997,"experience":30,"t400":"4:01.700","t800":"8:04.780","t1500":"15:03.720","v1500":1.6598,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":6},{"course":"CdM Golfo Aranci 2025","rang":6},{"course":"CdM Setubal 2025","rang":9},{"course":"CdM Funchal 2023","rang":10},{"course":"CdM Setubal 2023","rang":2},{"course":"CdM Golfo Aranci 2023","rang":4},{"course":"CdM Soma Bay 2023","rang":5},{"course":"CdM Abu Dhabi 2021","rang":10},{"course":"CdM Soma Bay 2024","rang":7},{"course":"CdM Golfo Aranci 2024","rang":21},{"course":"CdM Setubal 2024","rang":1},{"course":"CdM Neom 2024","rang":4},{"course":"CdM Hong Kong 2024","rang":2},{"course":"CdM Ibiza 2025","rang":6}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":4}],"v400":1.6549,"v800":1.6502,"respiration":null},{"bib":26,"nom":"KAPALA Bartosz","noc":"POL","annee":2006,"experience":0,"t400":"3:54.310","t800":"8:01.180","t1500":"15:15.690","v1500":1.6381,"resultats_cdm":[{"course":"CdM Golfo Aranci 2025","rang":23},{"course":"CdM Funchal 2023","rang":57},{"course":"CdM Soma Bay 2024","rang":24},{"course":"CdM Soma Bay 2025","rang":42}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":33},{"course":"ChM Doha 2024","rang":41}],"v400":1.7071,"v800":1.6626,"respiration":null},{"bib":27,"nom":"RAYMOND Thomas Edward","noc":"AUS","annee":2003,"experience":0,"t400":null,"t800":"8:02.250","t1500":"15:16.080","v1500":1.6374,"resultats_cdm":[{"course":"CdM Funchal 2023","rang":32},{"course":"CdM Eilat 2022","rang":21},{"course":"CdM Golfo Aranci 2024","rang":41},{"course":"CdM Soma Bay 2025","rang":26},{"course":"CdM Hong Kong 2024","rang":6}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":10}],"v400":null,"v800":1.6589,"respiration":null},{"bib":28,"nom":"VANHUYS Logan","noc":"BEL","annee":null,"experience":36,"t400":"3:55.910","t800":"8:06.840","t1500":"15:34.720","v1500":1.6048,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":31},{"course":"CdM Golfo Aranci 2025","rang":26},{"course":"CdM Setubal 2025","rang":20},{"course":"CdM Funchal 2023","rang":54},{"course":"CdM Setubal 2023","rang":12},{"course":"CdM Golfo Aranci 2023","rang":29},{"course":"CdM Soma Bay 2023","rang":21},{"course":"CdM Eilat 2022","rang":20},{"course":"CdM Doha 2021","rang":14},{"course":"CdM Abu Dhabi 2021","rang":27},{"course":"CdM Setubal 2024","rang":11},{"course":"CdM Soma Bay 2025","rang":12},{"course":"CdM Neom 2024","rang":11},{"course":"CdM Ibiza 2025","rang":17}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":40},{"course":"ChE Belgrade 2024","rang":15},{"course":"ChM Doha 2024","rang":33},{"course":"ChM Fukuoka 2023","rang":18},{"course":"ChM Budapest 2022","rang":10}],"v400":1.6956,"v800":1.6433,"respiration":null},{"bib":29,"nom":"BRANDT DE MACEDO Leonard","noc":"BRA","annee":null,"experience":0,"t400":"4:10.430","t800":"8:35.550","t1500":"16:09.510","v1500":1.5472,"resultats_cdm":[{"course":"CdM Golfo Aranci 2025","rang":16},{"course":"CdM Setubal 2025","rang":25},{"course":"CdM Setubal 2024","rang":17},{"course":"CdM Soma Bay 2025","rang":32},{"course":"CdM Neom 2024","rang":20},{"course":"CdM Hong Kong 2024","rang":13},{"course":"CdM Ibiza 2025","rang":29}],"resultats_chm":[],"v400":1.5973,"v800":1.5517,"respiration":null},{"bib":30,"nom":"LINEY Euan","noc":"AUS","annee":null,"experience":0,"t400":"3:47.090","t800":"7:44.070","t1500":"14:48.770","v1500":1.6877,"resultats_cdm":[{"course":"CdM Soma Bay 2025","rang":30}],"resultats_chm":[],"v400":1.7614,"v800":1.7239,"respiration":null},{"bib":31,"nom":"DREVERMAN Thomas James","noc":"AUS","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[],"resultats_chm":[],"v400":null,"v800":null,"respiration":null},{"bib":32,"nom":"KARPATI Mate","noc":"HUN","annee":null,"experience":0,"t400":"3:53.840","t800":"8:05.210","t1500":"15:26.640","v1500":1.6188,"resultats_cdm":[{"course":"CdM Golfo Aranci 2025","rang":33}],"resultats_chm":[],"v400":1.7106,"v800":1.6488,"respiration":null},{"bib":33,"nom":"SOBRIE Gautier","noc":"BEL","annee":null,"experience":0,"t400":"4:08.390","t800":"8:29.620","t1500":"16:02.240","v1500":1.5589,"resultats_cdm":[],"resultats_chm":[],"v400":1.6104,"v800":1.5698,"respiration":null},{"bib":34,"nom":"GABRIEL Jakub","noc":"SVK","annee":null,"experience":6,"t400":"4:04.950","t800":"8:25.520","t1500":"16:09.930","v1500":1.5465,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":37}],"resultats_chm":[],"v400":1.633,"v800":1.5825,"respiration":null},{"bib":35,"nom":"RASOVSZKY Kristof","noc":"HUN","annee":1997,"experience":76,"t400":"3:45.320","t800":"7:44.420","t1500":"14:51.460","v1500":1.6826,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":16},{"course":"CdM Golfo Aranci 2025","rang":44},{"course":"CdM Setubal 2025","rang":5},{"course":"CdM Funchal 2023","rang":3},{"course":"CdM Setubal 2023","rang":4},{"course":"CdM Golfo Aranci 2023","rang":1},{"course":"CdM Soma Bay 2023","rang":4},{"course":"CdM Eilat 2022","rang":4},{"course":"CdM Eilat 2021","rang":2},{"course":"CdM Ohrid 2021","rang":4},{"course":"CdM Doha 2021","rang":2},{"course":"CdM Abu Dhabi 2021","rang":3},{"course":"CdM Soma Bay 2024","rang":13},{"course":"CdM Golfo Aranci 2024","rang":3},{"course":"CdM Setubal 2024","rang":6},{"course":"CdM Neom 2024","rang":9},{"course":"CdM Hong Kong 2024","rang":21},{"course":"CdM Ibiza 2025","rang":8}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":14},{"course":"JO Tokyo 2021","rang":2},{"course":"JO Paris 2024","rang":1},{"course":"ChE Belgrade 2024","rang":9},{"course":"ChM Doha 2024","rang":1},{"course":"ChM Fukuoka 2023","rang":2},{"course":"ChE Stari Grad 2025","rang":1}],"v400":1.7753,"v800":1.7226,"respiration":"Droite"},{"bib":36,"nom":"MURPHY Dylan Hunter","noc":"AUS","annee":null,"experience":0,"t400":"3:52.700","t800":"8:00.000","t1500":"15:13.550","v1500":1.6419,"resultats_cdm":[{"course":"CdM Soma Bay 2025","rang":25}],"resultats_chm":[],"v400":1.719,"v800":1.6667,"respiration":null},{"bib":37,"nom":"KARL Luca","noc":"AUT","annee":2002,"experience":5,"t400":"3:56.640","t800":"8:03.280","t1500":"15:16.790","v1500":1.6361,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":12},{"course":"CdM Setubal 2025","rang":16},{"course":"CdM Golfo Aranci 2023","rang":58},{"course":"CdM Soma Bay 2024","rang":22},{"course":"CdM Soma Bay 2025","rang":28}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":8},{"course":"ChE Stari Grad 2025","rang":11}],"v400":1.6903,"v800":1.6554,"respiration":null},{"bib":38,"nom":"LOPEZ DIAZ Antonio Luis","noc":"ESP","annee":null,"experience":12,"t400":"3:58.960","t800":"8:15.800","t1500":"15:44.860","v1500":1.5875,"resultats_cdm":[{"course":"CdM Ibiza 2025","rang":57}],"resultats_chm":[],"v400":1.6739,"v800":1.6136,"respiration":null},{"bib":39,"nom":"HAMMER Aiden","noc":"USA","annee":2007,"experience":0,"t400":"3:48.200","t800":"7:51.680","t1500":"15:05.130","v1500":1.6572,"resultats_cdm":[],"resultats_chm":[],"v400":1.7528,"v800":1.6961,"respiration":null},{"bib":40,"nom":"DALU Fabio","noc":"ITA","annee":2000,"experience":11,"t400":"3:51.680","t800":"8:04.360","t1500":"15:10.670","v1500":1.6471,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":11},{"course":"CdM Setubal 2025","rang":15},{"course":"CdM Golfo Aranci 2023","rang":22},{"course":"CdM Soma Bay 2024","rang":11},{"course":"CdM Golfo Aranci 2024","rang":32},{"course":"CdM Soma Bay 2025","rang":16},{"course":"CdM Neom 2024","rang":6},{"course":"CdM Ibiza 2025","rang":21}],"resultats_chm":[],"v400":1.7265,"v800":1.6517,"respiration":null},{"bib":41,"nom":"MINAMIDE Taishin","noc":"JPN","annee":null,"experience":21,"t400":"4:04.200","t800":"8:16.600","t1500":"15:41.520","v1500":1.5932,"resultats_cdm":[{"course":"CdM Setubal 2023","rang":11},{"course":"CdM Golfo Aranci 2023","rang":28},{"course":"CdM Eilat 2022","rang":28},{"course":"CdM Golfo Aranci 2024","rang":26}],"resultats_chm":[{"course":"JO Tokyo 2021","rang":13},{"course":"JO Paris 2024","rang":15},{"course":"ChM Doha 2024","rang":25},{"course":"ChM Fukuoka 2023","rang":28},{"course":"ChM Budapest 2022","rang":16}],"v400":1.638,"v800":1.611,"respiration":"Gauche"},{"bib":42,"nom":"COSTA FERNANDEZ Lucas","noc":"ESP","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[],"resultats_chm":[],"v400":null,"v800":null,"respiration":null},{"bib":43,"nom":"CARREL Nolan","noc":"SUI","annee":null,"experience":0,"t400":"4:05.810","t800":"8:34.560","t1500":"16:57.180","v1500":1.4747,"resultats_cdm":[{"course":"CdM Golfo Aranci 2025","rang":54},{"course":"CdM Eilat 2022","rang":47}],"resultats_chm":[],"v400":1.6273,"v800":1.5547,"respiration":null},{"bib":44,"nom":"PARKER Ethan","noc":"FRA","annee":null,"experience":4,"t400":"3:57.060","t800":"8:02.510","t1500":"15:18.080","v1500":1.6338,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":17},{"course":"CdM Golfo Aranci 2025","rang":39},{"course":"CdM Funchal 2023","rang":74}],"resultats_chm":[],"v400":1.6873,"v800":1.658,"respiration":null},{"bib":45,"nom":"SCHREIBER Christian","noc":"SUI","annee":null,"experience":13,"t400":"4:01.210","t800":"8:17.370","t1500":"15:39.830","v1500":1.596,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":19},{"course":"CdM Funchal 2023","rang":53},{"course":"CdM Setubal 2023","rang":19},{"course":"CdM Golfo Aranci 2023","rang":60},{"course":"CdM Eilat 2022","rang":16},{"course":"CdM Abu Dhabi 2021","rang":46},{"course":"CdM Golfo Aranci 2024","rang":11},{"course":"CdM Soma Bay 2025","rang":18},{"course":"CdM Hong Kong 2024","rang":20},{"course":"CdM Ibiza 2025","rang":9}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":21},{"course":"ChE Belgrade 2024","rang":23},{"course":"ChM Doha 2024","rang":42},{"course":"ChM Fukuoka 2023","rang":26},{"course":"ChE Stari Grad 2025","rang":15}],"v400":1.6583,"v800":1.6085,"respiration":null},{"bib":46,"nom":"IBANEZ PINA Nil","noc":"ESP","annee":null,"experience":0,"t400":"4:08.810","t800":"8:35.080","t1500":"16:30.560","v1500":1.5143,"resultats_cdm":[{"course":"CdM Ibiza 2025","rang":61}],"resultats_chm":[],"v400":1.6077,"v800":1.5532,"respiration":null},{"bib":47,"nom":"KLEMET Oliver","noc":"GER","annee":2002,"experience":19,"t400":"3:42.810","t800":"7:44.610","t1500":"14:39.030","v1500":1.7064,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":23},{"course":"CdM Setubal 2025","rang":3},{"course":"CdM Funchal 2023","rang":21},{"course":"CdM Golfo Aranci 2023","rang":3},{"course":"CdM Soma Bay 2023","rang":8},{"course":"CdM Abu Dhabi 2021","rang":11},{"course":"CdM Soma Bay 2025","rang":17},{"course":"CdM Hong Kong 2024","rang":22},{"course":"CdM Ibiza 2025","rang":25}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":9},{"course":"JO Paris 2024","rang":2},{"course":"ChM Doha 2024","rang":11},{"course":"ChM Fukuoka 2023","rang":3}],"v400":1.7953,"v800":1.7219,"respiration":"Droite"},{"bib":48,"nom":"OLIVER SAGUE Aniol","noc":"ESP","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[],"resultats_chm":[],"v400":null,"v800":null,"respiration":null},{"bib":49,"nom":"FARRE CORTADA Joel","noc":"ESP","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[],"resultats_chm":[],"v400":null,"v800":null,"respiration":null},{"bib":50,"nom":"ACERENZA Domenico","noc":"ITA","annee":1995,"experience":28,"t400":"3:51.940","t800":"7:57.660","t1500":"15:12.560","v1500":1.6437,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":3},{"course":"CdM Golfo Aranci 2025","rang":7},{"course":"CdM Funchal 2023","rang":1},{"course":"CdM Golfo Aranci 2023","rang":2},{"course":"CdM Eilat 2022","rang":5},{"course":"CdM Abu Dhabi 2021","rang":2},{"course":"CdM Soma Bay 2024","rang":1}],"resultats_chm":[{"course":"JO Paris 2024","rang":4},{"course":"ChE Belgrade 2024","rang":4},{"course":"ChM Doha 2024","rang":7},{"course":"ChM Fukuoka 2023","rang":4},{"course":"ChM Budapest 2022","rang":2}],"v400":1.7246,"v800":1.6748,"respiration":"Droite"},{"bib":51,"nom":"CARREL Kilian","noc":"SUI","annee":null,"experience":0,"t400":"4:05.810","t800":"8:34.560","t1500":"16:57.180","v1500":1.4747,"resultats_cdm":[{"course":"CdM Golfo Aranci 2025","rang":56},{"course":"CdM Eilat 2022","rang":47}],"resultats_chm":[],"v400":1.6273,"v800":1.5547,"respiration":null},{"bib":52,"nom":"GIORDANO Pasquale","noc":"ITA","annee":null,"experience":9,"t400":"3:59.060","t800":"8:08.070","t1500":"15:27.580","v1500":1.6171,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":10},{"course":"CdM Golfo Aranci 2025","rang":29},{"course":"CdM Golfo Aranci 2023","rang":31},{"course":"CdM Golfo Aranci 2024","rang":15},{"course":"CdM Ibiza 2025","rang":27}],"resultats_chm":[],"v400":1.6732,"v800":1.6391,"respiration":null},{"bib":53,"nom":"FILADELLI Andrea","noc":"ITA","annee":null,"experience":19,"t400":"3:54.120","t800":"8:06.240","t1500":"15:35.140","v1500":1.604,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":5},{"course":"CdM Golfo Aranci 2025","rang":4},{"course":"CdM Setubal 2025","rang":11},{"course":"CdM Funchal 2023","rang":26},{"course":"CdM Golfo Aranci 2023","rang":32},{"course":"CdM Soma Bay 2024","rang":9},{"course":"CdM Golfo Aranci 2024","rang":5},{"course":"CdM Setubal 2024","rang":2},{"course":"CdM Soma Bay 2025","rang":6},{"course":"CdM Neom 2024","rang":8},{"course":"CdM Hong Kong 2024","rang":5},{"course":"CdM Ibiza 2025","rang":1}],"resultats_chm":[{"course":"ChE Stari Grad 2025","rang":5}],"v400":1.7085,"v800":1.6453,"respiration":null},{"bib":54,"nom":"HASSAN Jafar","noc":"SUD","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[],"resultats_chm":[],"v400":null,"v800":null,"respiration":null},{"bib":55,"nom":"LEE Kyle","noc":"AUS","annee":2002,"experience":12,"t400":"4:00.250","t800":"7:56.640","t1500":"15:08.720","v1500":1.6507,"resultats_cdm":[{"course":"CdM Soma Bay 2025","rang":8},{"course":"CdM Hong Kong 2024","rang":4}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":7},{"course":"JO Paris 2024","rang":13},{"course":"ChM Doha 2024","rang":9}],"v400":1.6649,"v800":1.6784,"respiration":"Droite"},{"bib":56,"nom":"CARTER Daniel","noc":"AUS","annee":2007,"experience":0,"t400":"4:07.910","t800":"8:18.150","t1500":"16:01.000","v1500":1.5609,"resultats_cdm":[],"resultats_chm":[],"v400":1.6135,"v800":1.6059,"respiration":null},{"bib":57,"nom":"YWANAGA PAPI Adrian Gustavo","noc":"PER","annee":null,"experience":0,"t400":"4:04.570","t800":"8:16.420","t1500":"15:47.790","v1500":1.5826,"resultats_cdm":[],"resultats_chm":[{"course":"ChM Doha 2024","rang":44},{"course":"ChM Fukuoka 2023","rang":44}],"v400":1.6355,"v800":1.6115,"respiration":null},{"bib":58,"nom":"GARCIA Mateo","noc":"ESP","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[],"resultats_chm":[],"v400":null,"v800":null,"respiration":null},{"bib":59,"nom":"REDONDO SORIA Iker","noc":"ESP","annee":null,"experience":0,"t400":"4:04.210","t800":"8:21.540","t1500":"16:21.520","v1500":1.5282,"resultats_cdm":[{"course":"CdM Ibiza 2025","rang":65}],"resultats_chm":[],"v400":1.6379,"v800":1.5951,"respiration":null},{"bib":60,"nom":"PUSKOVITCH Ivan","noc":"USA","annee":2001,"experience":7,"t400":"4:04.500","t800":"8:12.770","t1500":"15:23.030","v1500":1.6251,"resultats_cdm":[{"course":"CdM Golfo Aranci 2025","rang":41},{"course":"CdM Setubal 2025","rang":21},{"course":"CdM Funchal 2023","rang":24},{"course":"CdM Golfo Aranci 2023","rang":35},{"course":"CdM Golfo Aranci 2024","rang":34},{"course":"CdM Ibiza 2025","rang":31}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":20},{"course":"JO Paris 2024","rang":19},{"course":"ChM Doha 2024","rang":14}],"v400":1.636,"v800":1.6235,"respiration":null},{"bib":61,"nom":"LOUREIRO Luiz Felipe","noc":"BRA","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[{"course":"CdM Setubal 2025","rang":28},{"course":"CdM Eilat 2022","rang":37},{"course":"CdM Setubal 2024","rang":14},{"course":"CdM Hong Kong 2024","rang":14}],"resultats_chm":[],"v400":null,"v800":null,"respiration":null},{"bib":62,"nom":"CABRILLO SANCHEZ Norbert","noc":"ESP","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[{"course":"CdM Ibiza 2025","rang":66}],"resultats_chm":[],"v400":null,"v800":null,"respiration":null},{"bib":63,"nom":"POTECZIN Daniel","noc":"HUN","annee":null,"experience":0,"t400":"3:57.400","t800":"8:17.450","t1500":"15:43.260","v1500":1.5902,"resultats_cdm":[],"resultats_chm":[],"v400":1.6849,"v800":1.6082,"respiration":null},{"bib":64,"nom":"MORENO Victor","noc":"BRA","annee":2006,"experience":0,"t400":"3:53.060","t800":"8:04.520","t1500":"15:45.990","v1500":1.5856,"resultats_cdm":[],"resultats_chm":[],"v400":1.7163,"v800":1.6511,"respiration":null},{"bib":65,"nom":"FAURE Esteban","noc":"MON","annee":null,"experience":5,"t400":"4:11.220","t800":"8:24.420","t1500":"16:01.880","v1500":1.5594,"resultats_cdm":[{"course":"CdM Golfo Aranci 2025","rang":49},{"course":"CdM Neom 2024","rang":29}],"resultats_chm":[],"v400":1.5922,"v800":1.586,"respiration":null},{"bib":66,"nom":"MELECCHI Matheus","noc":"BRA","annee":2005,"experience":10,"t400":"4:03.140","t800":"8:07.060","t1500":"15:37.080","v1500":1.6007,"resultats_cdm":[{"course":"CdM Golfo Aranci 2025","rang":17},{"course":"CdM Setubal 2025","rang":13},{"course":"CdM Funchal 2023","rang":35},{"course":"CdM Golfo Aranci 2023","rang":69},{"course":"CdM Soma Bay 2023","rang":18},{"course":"CdM Soma Bay 2024","rang":17},{"course":"CdM Golfo Aranci 2024","rang":22},{"course":"CdM Setubal 2024","rang":10},{"course":"CdM Soma Bay 2025","rang":11},{"course":"CdM Neom 2024","rang":12},{"course":"CdM Hong Kong 2024","rang":26},{"course":"CdM Ibiza 2025","rang":18}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":12}],"v400":1.6451,"v800":1.6425,"respiration":null},{"bib":67,"nom":"SLOMAN Nicholas","noc":"AUS","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[],"resultats_chm":[],"v400":null,"v800":null,"respiration":null},{"bib":68,"nom":"MAZZEO Federico","noc":"ITA","annee":2003,"experience":0,"t400":"4:01.510","t800":"8:14.060","t1500":"15:45.320","v1500":1.5868,"resultats_cdm":[],"resultats_chm":[],"v400":1.6562,"v800":1.6192,"respiration":null},{"bib":69,"nom":"ILARIO Giuseppe","noc":"ITA","annee":null,"experience":10,"t400":"4:04.490","t800":"8:14.200","t1500":"15:28.760","v1500":1.6151,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":28},{"course":"CdM Golfo Aranci 2025","rang":10},{"course":"CdM Setubal 2025","rang":14},{"course":"CdM Golfo Aranci 2023","rang":30},{"course":"CdM Golfo Aranci 2024","rang":16},{"course":"CdM Ibiza 2025","rang":3}],"resultats_chm":[],"v400":1.6361,"v800":1.6188,"respiration":null},{"bib":70,"nom":"CUBEIRO ROSENDE Xoel","noc":"ESP","annee":null,"experience":0,"t400":"4:12.040","t800":"8:44.410","t1500":"16:51.720","v1500":1.4826,"resultats_cdm":[{"course":"CdM Ibiza 2025","rang":64}],"resultats_chm":[],"v400":1.587,"v800":1.5255,"respiration":null},{"bib":71,"nom":"GASOL GUTIERREZ Biel","noc":"ESP","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[],"resultats_chm":[],"v400":null,"v800":null,"respiration":null},{"bib":72,"nom":"NAGY Nandor","noc":"HUN","annee":2006,"experience":2,"t400":"3:54.360","t800":"8:08.660","t1500":"15:31.570","v1500":1.6102,"resultats_cdm":[],"resultats_chm":[],"v400":1.7068,"v800":1.6371,"respiration":null},{"bib":73,"nom":"EZAWA Riku","noc":"JPN","annee":2003,"experience":1,"t400":"3:52.950","t800":"8:06.280","t1500":"15:21.230","v1500":1.6283,"resultats_cdm":[],"resultats_chm":[],"v400":1.7171,"v800":1.6451,"respiration":null},{"bib":74,"nom":"JACOBS Colin","noc":"USA","annee":2008,"experience":4,"t400":"3:53.660","t800":"8:02.020","t1500":"15:16.330","v1500":1.637,"resultats_cdm":[{"course":"CdM Golfo Aranci 2025","rang":58}],"resultats_chm":[],"v400":1.7119,"v800":1.6597,"respiration":null},{"bib":75,"nom":"HAYES Conor Patrick","noc":"AUS","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[],"resultats_chm":[],"v400":null,"v800":null,"respiration":null},{"bib":76,"nom":"DIAZ RODRIGUEZ Ivan","noc":"ESP","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[],"resultats_chm":[],"v400":null,"v800":null,"respiration":null},{"bib":77,"nom":"DE TULLIO Luca","noc":"ITA","annee":null,"experience":3,"t400":"4:13.060","t800":"8:36.330","t1500":"16:18.030","v1500":1.5337,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":20},{"course":"CdM Golfo Aranci 2025","rang":25},{"course":"CdM Soma Bay 2025","rang":23}],"resultats_chm":[],"v400":1.5807,"v800":1.5494,"respiration":null},{"bib":78,"nom":"VARGAS TRUJILLO Cristobal","noc":"ESP","annee":null,"experience":0,"t400":"3:55.770","t800":null,"t1500":"15:11.340","v1500":1.6459,"resultats_cdm":[{"course":"CdM Ibiza 2025","rang":35}],"resultats_chm":[],"v400":1.6966,"v800":null,"respiration":null},{"bib":79,"nom":"NEVADO RUIZ Hugo","noc":"ESP","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[],"resultats_chm":[],"v400":null,"v800":null,"respiration":null},{"bib":80,"nom":"GRAVLEY Dylan","noc":"USA","annee":null,"experience":9,"t400":"4:08.270","t800":"8:15.080","t1500":"15:40.070","v1500":1.5956,"resultats_cdm":[{"course":"CdM Golfo Aranci 2025","rang":18},{"course":"CdM Setubal 2025","rang":12},{"course":"CdM Funchal 2023","rang":46},{"course":"CdM Golfo Aranci 2023","rang":21},{"course":"CdM Eilat 2022","rang":14},{"course":"CdM Abu Dhabi 2021","rang":49},{"course":"CdM Hong Kong 2024","rang":7},{"course":"CdM Ibiza 2025","rang":11}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":17},{"course":"ChM Budapest 2022","rang":13}],"v400":1.6111,"v800":1.6159,"respiration":null},{"bib":81,"nom":"URBAN Richard","noc":"SVK","annee":null,"experience":0,"t400":"4:04.710","t800":"8:22.130","t1500":"16:08.520","v1500":1.5488,"resultats_cdm":[],"resultats_chm":[{"course":"ChE Belgrade 2024","rang":29}],"v400":1.6346,"v800":1.5932,"respiration":null},{"bib":82,"nom":"STRAKA Martin","noc":"CZE","annee":null,"experience":29,"t400":"4:08.690","t800":"8:27.860","t1500":"16:11.430","v1500":1.5441,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":25},{"course":"CdM Golfo Aranci 2025","rang":9},{"course":"CdM Setubal 2025","rang":22},{"course":"CdM Funchal 2023","rang":31},{"course":"CdM Setubal 2023","rang":14},{"course":"CdM Golfo Aranci 2023","rang":43},{"course":"CdM Eilat 2022","rang":29},{"course":"CdM Soma Bay 2024","rang":12},{"course":"CdM Golfo Aranci 2024","rang":25},{"course":"CdM Setubal 2024","rang":7},{"course":"CdM Soma Bay 2025","rang":14},{"course":"CdM Neom 2024","rang":14},{"course":"CdM Hong Kong 2024","rang":11},{"course":"CdM Ibiza 2025","rang":13}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":15},{"course":"JO Paris 2024","rang":20},{"course":"ChE Belgrade 2024","rang":24},{"course":"ChM Doha 2024","rang":17},{"course":"ChM Fukuoka 2023","rang":13},{"course":"ChE Stari Grad 2025","rang":16}],"v400":1.6084,"v800":1.5752,"respiration":null},{"bib":83,"nom":"CASALS MAS Eric","noc":"ESP","annee":null,"experience":0,"t400":"4:09.070","t800":"8:33.200","t1500":"16:09.990","v1500":1.5464,"resultats_cdm":[{"course":"CdM Ibiza 2025","rang":59}],"resultats_chm":[],"v400":1.606,"v800":1.5588,"respiration":null},{"bib":84,"nom":"AVILES ZHURAVLEV Santiago","noc":"ESP","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[],"resultats_chm":[],"v400":null,"v800":null,"respiration":null},{"bib":85,"nom":"FONTAINE Logan","noc":"FRA","annee":1999,"experience":39,"t400":"3:46.600","t800":"7:51.920","t1500":"15:04.500","v1500":1.6584,"resultats_cdm":[{"course":"CdM Golfo Aranci 2025","rang":2},{"course":"CdM Setubal 2025","rang":4},{"course":"CdM Funchal 2023","rang":7},{"course":"CdM Soma Bay 2023","rang":3},{"course":"CdM Doha 2021","rang":6},{"course":"CdM Abu Dhabi 2021","rang":18},{"course":"CdM Golfo Aranci 2024","rang":2},{"course":"CdM Soma Bay 2025","rang":2},{"course":"CdM Ibiza 2025","rang":7}],"resultats_chm":[{"course":"JO Paris 2024","rang":5},{"course":"ChM Doha 2024","rang":4},{"course":"ChM Fukuoka 2023","rang":9},{"course":"ChE Stari Grad 2025","rang":2}],"v400":1.7652,"v800":1.6952,"respiration":null},{"bib":86,"nom":"MACARIO MOLINA Joan","noc":"ESP","annee":null,"experience":0,"t400":"3:49.540","t800":"7:50.490","t1500":"14:51.000","v1500":1.6835,"resultats_cdm":[{"course":"CdM Ibiza 2025","rang":40}],"resultats_chm":[],"v400":1.7426,"v800":1.7004,"respiration":null},{"bib":87,"nom":"AMARAL Francisco","noc":"POR","annee":null,"experience":3,"t400":"3:58.620","t800":"8:15.260","t1500":"15:43.040","v1500":1.5906,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":35},{"course":"CdM Setubal 2024","rang":24},{"course":"CdM Ibiza 2025","rang":43}],"resultats_chm":[{"course":"ChE Stari Grad 2025","rang":26}],"v400":1.6763,"v800":1.6153,"respiration":null},{"bib":88,"nom":"BETLEHEM David","noc":"HUN","annee":2003,"experience":41,"t400":"3:47.860","t800":"7:47.020","t1500":"14:40.910","v1500":1.7028,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":2},{"course":"CdM Golfo Aranci 2025","rang":1},{"course":"CdM Setubal 2025","rang":7},{"course":"CdM Funchal 2023","rang":5},{"course":"CdM Setubal 2023","rang":3},{"course":"CdM Golfo Aranci 2023","rang":5},{"course":"CdM Eilat 2022","rang":3},{"course":"CdM Eilat 2021","rang":6},{"course":"CdM Abu Dhabi 2021","rang":21},{"course":"CdM Soma Bay 2024","rang":5},{"course":"CdM Golfo Aranci 2024","rang":4},{"course":"CdM Ibiza 2025","rang":34}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":6},{"course":"JO Paris 2024","rang":3},{"course":"ChE Belgrade 2024","rang":3},{"course":"ChM Doha 2024","rang":6},{"course":"ChM Fukuoka 2023","rang":16},{"course":"ChM Budapest 2022","rang":5},{"course":"ChE Stari Grad 2025","rang":10}],"v400":1.7555,"v800":1.713,"respiration":"Gauche et Droite"},{"bib":89,"nom":"ALVAREZ GONZALEZ Unai","noc":"ESP","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[],"resultats_chm":[],"v400":null,"v800":null,"respiration":null},{"bib":90,"nom":"GAVIOLI Bernardo","noc":"BRA","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[{"course":"CdM Setubal 2025","rang":23},{"course":"CdM Funchal 2023","rang":45},{"course":"CdM Golfo Aranci 2023","rang":55},{"course":"CdM Soma Bay 2023","rang":28},{"course":"CdM Setubal 2024","rang":12},{"course":"CdM Neom 2024","rang":13},{"course":"CdM Hong Kong 2024","rang":25}],"resultats_chm":[],"v400":null,"v800":null,"respiration":null},{"bib":91,"nom":"TABUCHI Kaito","noc":"JPN","annee":2002,"experience":0,"t400":"3:46.220","t800":"7:53.360","t1500":"14:45.570","v1500":1.6938,"resultats_cdm":[],"resultats_chm":[],"v400":1.7682,"v800":1.69,"respiration":null},{"bib":92,"nom":"TSUJIMORI Kaito","noc":"JPN","annee":2004,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[{"course":"CdM Setubal 2025","rang":26},{"course":"CdM Neom 2024","rang":19}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":25}],"v400":null,"v800":null,"respiration":null},{"bib":93,"nom":"CARDOSO Diogo","noc":"POR","annee":null,"experience":0,"t400":"4:04.570","t800":"8:16.450","t1500":"15:30.360","v1500":1.6123,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":29},{"course":"CdM Setubal 2025","rang":27},{"course":"CdM Funchal 2023","rang":62},{"course":"CdM Golfo Aranci 2023","rang":36},{"course":"CdM Eilat 2022","rang":36},{"course":"CdM Abu Dhabi 2021","rang":38},{"course":"CdM Setubal 2024","rang":13},{"course":"CdM Neom 2024","rang":17},{"course":"CdM Ibiza 2025","rang":41}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":30},{"course":"ChE Belgrade 2024","rang":19},{"course":"ChM Doha 2024","rang":26},{"course":"ChM Fukuoka 2023","rang":23},{"course":"ChM Budapest 2022","rang":27}],"v400":1.6355,"v800":1.6114,"respiration":null},{"bib":94,"nom":"MENDEZ PUGA Mario","noc":"ESP","annee":2003,"experience":3,"t400":"3:55.060","t800":"8:04.860","t1500":"15:24.750","v1500":1.6221,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":22},{"course":"CdM Golfo Aranci 2025","rang":24},{"course":"CdM Ibiza 2025","rang":24}],"resultats_chm":[{"course":"ChE Stari Grad 2025","rang":12}],"v400":1.7017,"v800":1.65,"respiration":null},{"bib":95,"nom":"NAVARRO MERENCIANO Adria","noc":"ESP","annee":null,"experience":0,"t400":null,"t800":null,"t1500":null,"v1500":null,"resultats_cdm":[],"resultats_chm":[],"v400":null,"v800":null,"respiration":null},{"bib":96,"nom":"BOROVKA Denis","noc":"CZE","annee":null,"experience":0,"t400":"4:19.310","t800":"8:50.650","t1500":"16:44.430","v1500":1.4934,"resultats_cdm":[{"course":"CdM Soma Bay 2026","rang":39},{"course":"CdM Golfo Aranci 2025","rang":37},{"course":"CdM Soma Bay 2024","rang":32},{"course":"CdM Setubal 2024","rang":21},{"course":"CdM Neom 2024","rang":27}],"resultats_chm":[],"v400":1.5426,"v800":1.5076,"respiration":null},{"bib":97,"nom":"WOZNIAK Piotr","noc":"POL","annee":null,"experience":13,"t400":"3:59.630","t800":"8:13.400","t1500":"15:37.440","v1500":1.6001,"resultats_cdm":[{"course":"CdM Funchal 2023","rang":49},{"course":"CdM Eilat 2022","rang":39},{"course":"CdM Soma Bay 2024","rang":14},{"course":"CdM Soma Bay 2025","rang":9}],"resultats_chm":[{"course":"ChM Singapour 2025 5K","rang":22},{"course":"JO Paris 2024","rang":22},{"course":"ChE Belgrade 2024","rang":17},{"course":"ChM Doha 2024","rang":20},{"course":"ChE Stari Grad 2025","rang":17}],"v400":1.6692,"v800":1.6214,"respiration":"Droite"},{"bib":98,"nom":"COCERA CORDON Yare","noc":"ESP","annee":null,"experience":3,"t400":"4:04.000","t800":"8:17.890","t1500":"15:53.870","v1500":1.5725,"resultats_cdm":[{"course":"CdM Ibiza 2025","rang":54}],"resultats_chm":[],"v400":1.6393,"v800":1.6068,"respiration":null},{"bib":99,"nom":"WAINMAN Benjamin Nicholas","noc":"AUS","annee":2003,"experience":0,"t400":"4:14.230","t800":"8:34.180","t1500":"16:13.200","v1500":1.5413,"resultats_cdm":[],"resultats_chm":[],"v400":1.5734,"v800":1.5559,"respiration":null}];
+
+let G = 'f', SEL = null, NOC_FILT = null, VIEW = 'hist';
+
+const acc  = () => G === 'f' ? '#003087' : '#003087';
+const acc2 = () => G === 'f' ? '#C8102E' : '#1a6fc4';
+const data = () => G === 'f' ? DATA_F : DATA_H;
+
+// ── FFN palette & experience color ──────────────────────────
+// Expérience: 0→light blue, 80→dark navy (FFN)
+function expColor(e) {
+  const t = Math.min(1, (e || 0) / 80);
+  // expérience 0 → bleu moyen visible #6da8d4 ; expérience 80 → bleu marine #003087
+  const r = Math.round(109 - t * 109);
+  const g = Math.round(168 - t * 120);
+  const b = Math.round(212 - t * 76);
+  return 'rgb(' + r + ',' + g + ',' + b + ')';
+}
+
+function isFrench(noc) { return noc === 'FRA'; }
+
+// ── Layout heights ───────────────────────────────────────────
+function setTop() {
+  const hh = document.getElementById('hdr').offsetHeight;
+  const fh = document.getElementById('fbar').offsetHeight;
+  document.getElementById('main-layout').style.paddingTop = (hh + fh) + 'px';
+  document.getElementById('fbar').style.top = hh + 'px';
+}
+
+// ── NOC Chips ────────────────────────────────────────────────
+function buildChips() {
+  const nocs = [...new Set(data().map(d => d.noc))].sort();
+  const wrap = document.getElementById('chips');
+  wrap.innerHTML = '';
+  const mk = (lbl, noc) => {
+    const b = document.createElement('button');
+    const on = NOC_FILT === noc;
+    b.className = 'chip' + (on ? ' on' : '');
+    b.textContent = lbl;
+    b.onclick = () => { NOC_FILT = NOC_FILT === noc ? null : noc; buildChips(); renderHist(); };
+    wrap.appendChild(b);
+  };
+  mk('Tous', null);
+  nocs.forEach(n => mk((NOC_FLAGS[n] || '') + ' ' + n, n));
+}
+
+// ── Sort & filter ────────────────────────────────────────────
+function sorted() {
+  let d = [...data()];
+  if (NOC_FILT) d = d.filter(x => x.noc === NOC_FILT);
+  const s = document.getElementById('sort').value;
+  if (s === 'bib')   d.sort((a, b) => a.bib - b.bib);
+  else if (s === 'exp')  d.sort((a, b) => (b.experience || 0) - (a.experience || 0));
+  else if (s === 'v15')  d.sort((a, b) => (b.v1500 || 0) - (a.v1500 || 0));
+  else if (s === 'v400') d.sort((a, b) => (b.v400 || 0) - (a.v400 || 0));
+  else d.sort((a, b) => a.noc.localeCompare(b.noc) || a.bib - b.bib);
+  return d;
+}
+
+// ── HISTOGRAM VIEW ───────────────────────────────────────────
+function renderHist() {
+  const d = sorted();
+  document.getElementById('pinfo').textContent =
+    d.length + ' nageur' + (G === 'h' ? 's' : 'ses') + (NOC_FILT ? ' · ' + NOC_FILT : '');
+
+  const container = document.getElementById('hist-container');
+  const W = container.clientWidth || 900;
+
+  // Chart dimensions
+  const marginL = 48, marginR = 12, marginT = 28, marginB = 170;
+  const chartW = W - marginL - marginR;
+  const chartH = 260;
+  const svgH = chartH + marginT + marginB;
+
+  // Scales
+  const allV = d.flatMap(x => [x.v1500, x.v400].filter(v => v != null));
+  const vMin = allV.length ? Math.max(1.20, Math.min(...allV) - 0.05) : 1.20;
+  const vMax = allV.length ? Math.min(1.90, Math.max(...allV) + 0.05) : 1.90;
+
+  const barW = Math.max(6, Math.min(28, (chartW / d.length) - 2));
+  const gap  = chartW / d.length;
+
+  const yScale = v => chartH - ((v - vMin) / (vMax - vMin)) * chartH;
+  const xCenter = i => marginL + gap * i + gap / 2;
+
+  // Y grid lines
+  const yTicks = [];
+  let tick = Math.ceil(vMin * 10) / 10;
+  while (tick <= vMax + 0.001) { yTicks.push(+tick.toFixed(2)); tick = +(tick + 0.1).toFixed(2); }
+
+  let svg = '<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ' + W + ' ' + svgH + '" style="display:block">';
+
+  // ── Background
+
+  svg += '<rect width="' + W + '" height="' + svgH + '" fill="#f5f8fc"/>';
+  svg += '<rect x="' + marginL + '" y="' + marginT + '" width="' + chartW + '" height="' + chartH + '" fill="white" rx="2"/>';
+
+  // ── Y grid & labels
+  yTicks.forEach(v => {
+    const y = marginT + yScale(v);
+    svg += '<line x1="' + marginL + '" y1="' + y + '" x2="' + (marginL + chartW) + '" y2="' + y + '" stroke="#dde5f0" stroke-width="1" stroke-dasharray="3,2"/>';
+    svg += '<text x="' + (marginL - 5) + '" y="' + (y + 4) + '" text-anchor="end" font-family="Arial,sans-serif" font-size="9" fill="#6b7f9e">' + v.toFixed(1) + '</text>';
+  });
+
+  // ── Y axis label
+  svg += '<text transform="rotate(-90,' + 16 + ',' + (marginT + chartH/2) + ')" x="16" y="' + (marginT + chartH/2) + '" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#6b7f9e" font-weight="600">Vitesse (m/s)</text>';
+
+  // ── Bars + dots
+  d.forEach((ng, i) => {
+    const cx = xCenter(i);
+    const isSel = ng.bib === SEL;
+    const isFR  = isFrench(ng.noc);
+    const bColor = expColor(ng.experience || 0);
+    const bStroke = isSel ? '#C8102E' : (isFR ? '#C8102E' : '#7aaecf');
+    const bStrokeW = isSel || isFR ? 1.5 : 0.8;
+
+    // Bar for v1500 uniquement (pas de fallback)
+    if (ng.v1500) {
+      const bY = marginT + yScale(ng.v1500);
+      const bH = chartH - yScale(ng.v1500);
+      svg += '<rect x="' + (cx - barW/2) + '" y="' + bY + '" width="' + barW + '" height="' + bH + '"'
+        + ' fill="' + bColor + '" stroke="' + bStroke + '" stroke-width="' + bStrokeW + '" rx="1"'
+        + ' style="cursor:pointer" onclick="tap(' + ng.bib + ')"/>';
+    }
+
+    // Dot + dashed line for v400
+    if (ng.v400) {
+      const dy = marginT + yScale(ng.v400);
+      const baseY = ng.v1500 ? (marginT + yScale(ng.v1500)) : (marginT + chartH);
+      svg += '<line x1="' + cx + '" y1="' + dy + '" x2="' + cx + '" y2="' + baseY + '" stroke="#003087" stroke-width="1" stroke-dasharray="3,2"/>';
+      svg += '<circle cx="' + cx + '" cy="' + dy + '" r="3.5" fill="#003087" style="cursor:pointer" onclick="tap(' + ng.bib + ')"/>';
+    }
+
+    // French flag emoji above bar
+    if (isFR) {
+      const topY = ng.v1500 ? (marginT + yScale(ng.v1500) - 4) : (marginT + chartH - 4);
+      svg += '<text x="' + cx + '" y="' + topY + '" text-anchor="middle" font-size="11">🇫🇷</text>';
+    }
+
+    // Selection highlight
+    if (isSel) {
+      svg += '<rect x="' + (cx - barW/2 - 2) + '" y="' + marginT + '" width="' + (barW + 4) + '" height="' + chartH + '" fill="rgba(200,16,46,0.08)" rx="2" pointer-events="none"/>';
+    }
+
+    // Hit area (full column, transparent)
+    svg += '<rect x="' + (cx - gap/2) + '" y="' + marginT + '" width="' + gap + '" height="' + chartH + '" fill="transparent" style="cursor:pointer" onclick="tap(' + ng.bib + ')"/>';
+
+    // BIB label under x-axis
+    const lblY = marginT + chartH + 14;
+    svg += '<text x="' + cx + '" y="' + lblY + '" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="' + (isSel ? '#C8102E' : '#6b7f9e') + '" font-weight="' + (isSel ? '700' : '400') + '">' + ng.bib + '</text>';
+
+    // Name label (rotated, small)
+    const nameY = marginT + chartH + 18;
+    const shortName = ng.nom.length > 16 ? ng.nom.split(' ')[0] : ng.nom;
+    svg += '<text transform="rotate(-55,' + cx + ',' + (nameY + 8) + ')" x="' + cx + '" y="' + (nameY + 8) + '"'
+      + ' text-anchor="end" font-family="Arial,sans-serif" font-size="8.5" fill="' + (isSel ? '#C8102E' : (isFR ? '#C8102E' : '#4a5f7a')) + '"'
+      + ' font-weight="' + (isFR ? '700' : '400') + '">' + shortName + '</text>';
+  });
+
+  // ── Frame
+  svg += '<rect x="' + marginL + '" y="' + marginT + '" width="' + chartW + '" height="' + chartH + '" fill="none" stroke="#c5d4e8" stroke-width="1" rx="2"/>';
+
+  // ── Legend — positionnée SOUS les noms rotatés
+  const legY1 = marginT + chartH + 126;  // ligne 1 (sous les noms ~+90px)
+  const legY2 = legY1 + 24;             // ligne 2
+  const legX  = marginL;
+
+  // Fond légende
+  svg += '<rect x="' + (legX-4) + '" y="' + (legY1-14) + '" width="' + (chartW+8) + '" height="46" rx="4" fill="#eef3fa" stroke="#d0dce8" stroke-width="0.8"/>';
+
+  // — Ligne 1 : Vitesse 1500 + Vitesse 400 + Français
+  // Barre v1500
+  svg += '<rect x="' + legX + '" y="' + (legY1-10) + '" width="12" height="12" rx="1" fill="#6da8d4" stroke="#7aaecf" stroke-width="0.8"/>';
+  svg += '<text x="' + (legX+16) + '" y="' + legY1 + '" font-family="Arial,sans-serif" font-size="9.5" fill="#1a2a4a" font-weight="600">Vitesse 1500</text>';
+
+
+  // Point + tiret v400
+  const sepX = legX + 240;
+  svg += '<line x1="' + sepX + '" y1="' + (legY1-6) + '" x2="' + sepX + '" y2="' + (legY1+2) + '" stroke="#003087" stroke-width="1.2" stroke-dasharray="2.5,2"/>';
+  svg += '<circle cx="' + sepX + '" cy="' + (legY1-8) + '" r="3.5" fill="#003087"/>';
+  svg += '<text x="' + (sepX+9) + '" y="' + legY1 + '" font-family="Arial,sans-serif" font-size="9.5" fill="#1a2a4a" font-weight="600">Vitesse 400</text>';
+
+  // Français
+  const frX = legX + 350;
+  svg += '<text x="' + frX + '" y="' + legY1 + '" font-size="11">🇫🇷</text>';
+  svg += '<text x="' + (frX+16) + '" y="' + legY1 + '" font-family="Arial,sans-serif" font-size="9.5" fill="#C8102E" font-weight="600">Nageur(se) français(e)</text>';
+
+  // Cliquer
+  const clkX = legX + 490;
+  svg += '<text x="' + clkX + '" y="' + legY1 + '" font-family="Arial,sans-serif" font-size="9" fill="#7aaecf" font-style="italic">← cliquer sur une barre pour la fiche</text>';
+
+  // — Ligne 2 : dégradé expérience
+  const gradLabelX = legX;
+  svg += '<text x="' + gradLabelX + '" y="' + legY2 + '" font-family="Arial,sans-serif" font-size="9.5" fill="#1a2a4a" font-weight="600">Expérience :</text>';
+
+  const gradStartX = legX + 74;
+  const steps = 10;
+  const stepW  = 14;
+  for (let ei = 0; ei <= steps; ei++) {
+    const ev = ei * 8;
+    const c  = expColor(ev);
+    svg += '<rect x="' + (gradStartX + ei*stepW) + '" y="' + (legY2-10) + '" width="' + stepW + '" height="10" fill="' + c + '"/>';
+  }
+  // Bord du gradient
+  svg += '<rect x="' + gradStartX + '" y="' + (legY2-10) + '" width="' + (steps*stepW+stepW) + '" height="10" fill="none" stroke="#c0cfe0" stroke-width="0.8"/>';
+  svg += '<text x="' + gradStartX + '" y="' + (legY2+8) + '" font-family="Arial,sans-serif" font-size="8" fill="#6b7f9e">0 course</text>';
+  svg += '<text x="' + (gradStartX + steps*stepW + stepW) + '" y="' + (legY2+8) + '" font-family="Arial,sans-serif" font-size="8" fill="#003087" font-weight="600" text-anchor="end">80+ courses</text>';
+
+  svg += '</svg>';
+  container.innerHTML = svg;
+}
+
+// ── Tap / select ─────────────────────────────────────────────
+function tap(bib) {
+  SEL = SEL === bib ? null : bib;
+  renderHist();
+  if (SEL) {
+    const ng = data().find(x => x.bib === SEL);
+    if (ng) showFiche(ng);
+  } else {
+    closePanel();
+  }
+}
+
+function closePanel() {
+  SEL = null;
+  renderHist();
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('panel').classList.remove('show');
+  document.getElementById('fiche').innerHTML = '';
+  document.getElementById('pempty').style.display = 'flex';
+}
+
+// ── Fiche ─────────────────────────────────────────────────────
+function showFiche(ng) {
+  const A = '#C8102E';
+  const flag = NOC_FLAGS[ng.noc] || '';
+  const annee = ng.annee || '—';
+  const age = ng.annee ? (2026 - ng.annee) + ' ans' : '';
+  const isF = G === 'f';
+  const expPct = Math.min(100, (ng.experience || 0) / 80 * 100);
+
+  const tcell = (lbl, v) =>
+    '<div class="tcell"><div class="tlabel">' + lbl + '</div><div class="tval' + (v ? '' : ' nd') + '">' + (v || '—') + '</div></div>';
+
+  const vtcell = (lbl, v) =>
+    v ? '<div class="tcell" style="border:1px solid #003087;background:#eef3fa"><div class="tlabel">' + lbl + '</div><div class="tval" style="color:#003087">' + v.toFixed(4) + '</div></div>' : '';
+
+  const times = isF
+    ? tcell('100 NL', ng.t100) + tcell('200 NL', ng.t200) + tcell('400 NL', ng.t400) + tcell('800 NL', ng.t800) + tcell('1500 NL', ng.t1500) + vtcell('Vitesse 400', ng.v400) + vtcell('Vitesse 1500', ng.v1500)
+    : tcell('400 NL', ng.t400) + tcell('800 NL', ng.t800) + tcell('1500 NL', ng.t1500) + vtcell('Vitesse 400', ng.v400) + vtcell('Vitesse 1500', ng.v1500);
+
+  const rl = (list, empty) => list.length ? list.map(r => {
+    const cls = r.rang <= 3 ? 'top3' : r.rang <= 10 ? 'top10' : 'other';
+    return '<div class="ritem"><span class="rrank ' + cls + '">' + r.rang + '</span><span class="rcourse">' + r.course + '</span></div>';
+  }).join('') : '<div class="empty-r">' + empty + '</div>';
+
+  // Respiration
+  let respHtml = '';
+  if (ng.respiration) {
+    const icon = ng.respiration.includes('Gauche et') ? '↔' : ng.respiration.includes('Gauche') ? '←' : '→';
+    respHtml = '<div class="resp-badge"><span class="resp-icon">' + icon + '</span><span class="resp-label">Respiration ' + ng.respiration + '</span></div>';
+  }
+  document.getElementById('panel-title').textContent = ng.nom;
+  document.getElementById('pempty').style.display = 'none';
+  document.getElementById('fiche').innerHTML =
+    '<div class="fiche">' +
+    '<div class="fiche-hdr">' +
+    '<div class="bib-badge">' + ng.bib + '</div>' +
+    '<div><div class="fiche-name">' + ng.nom + '</div>' +
+    '<div class="fiche-meta">' + flag + ' ' + ng.noc + (annee !== '—' ? ' · ' + annee + (age ? ' (' + age + ')' : '') : '') + '</div>' + respHtml + '</div>' +
+    '</div>' +
+    '<div class="sect"><div class="sect-title">⏱ Temps piscine</div><div class="tgrid">' + times + '</div></div>' +
+    '<div class="sect"><div class="sect-title">📊 Expérience eau libre</div>' +
+    '<div class="exp-wrap"><div class="exp-row"><span>' + (ng.experience || 0) + ' courses</span><span style="font-size:10px;color:#aaa">/ 80 ref.</span></div>' +
+    '<div class="exp-bar-bg"><div class="exp-bar" style="width:' + expPct + '%;background:linear-gradient(90deg,#c6ddf0,#003087)"></div></div></div></div>' +
+    '<div class="sect"><div class="sect-title">🏆 ChM · ChE · JO</div><div class="rlist">' + rl(ng.resultats_chm, 'Aucun résultat') + '</div></div>' +
+    '<div class="sect"><div class="sect-title">🌊 Coupes du Monde</div><div class="rlist">' + rl(ng.resultats_cdm, 'Aucun résultat') + '</div></div>' +
+    '</div>';
+
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('panel').classList.add('show');
+}
+
+// ── Switch gender ─────────────────────────────────────────────
+function switchGender(g) {
+  G = g; SEL = null; NOC_FILT = null;
+  document.getElementById('tf').className = 'tab' + (g === 'f' ? ' on' : '');
+  document.getElementById('th').className = 'tab' + (g === 'h' ? ' on' : '');
+  document.getElementById('fiche').innerHTML = '';
+  document.getElementById('pempty').style.display = 'flex';
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('panel').classList.remove('show');
+  buildChips();
+  renderHist();
+}
+
+// ── Init ──────────────────────────────────────────────────────
+window.addEventListener('load', () => { setTop(); switchGender('f'); });
+window.addEventListener('resize', () => { setTop(); renderHist(); });
+
+</script>
+</body>
+</html>
